@@ -101,10 +101,10 @@ class LeaveRequest extends Model
     public function getStatusBadgeClasses(): string
     {
         return match ($this->status) {
-            'pending' => 'bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-900/40 dark:text-amber-300 dark:border-amber-700',
-            'approved' => 'bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-900/40 dark:text-emerald-300 dark:border-emerald-700',
-            'rejected' => 'bg-rose-100 text-rose-800 border-rose-300 dark:bg-rose-900/40 dark:text-rose-300 dark:border-rose-700',
-            default => 'bg-slate-100 text-slate-800 border-slate-300',
+            'pending' => 'bg-amber-500 text-white font-bold shadow-2xs',
+            'approved' => 'bg-emerald-600 text-white font-bold shadow-2xs',
+            'rejected' => 'bg-rose-600 text-white font-bold shadow-2xs',
+            default => 'bg-slate-600 text-white font-bold',
         };
     }
 

@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="max-w-3xl mx-auto py-4 sm:py-8"
+<div class="max-w-3xl mx-auto pb-8"
      x-data="{
         type: '{{ old('type', 'late') ?: 'late' }}',
         emergency: {{ old('emergency') ? 'true' : 'false' }},
@@ -33,20 +33,24 @@
         }
      }">
 
-    <!-- Form Header -->
-    <div class="bg-white rounded-t-2xl border border-b-0 border-slate-200 p-6 sm:p-8 shadow-2xs">
-        <div class="flex items-center justify-between">
-            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">
+    <!-- Form Header (Responsive on all screen sizes) -->
+    <div class="bg-white rounded-t-2xl border border-b-0 border-slate-200 p-5 sm:p-8 shadow-2xs">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5">
+            <span class="inline-flex items-center self-start px-3 py-1 rounded-full text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 whitespace-nowrap shadow-2xs">
+                <svg class="w-3.5 h-3.5 mr-1.5 text-indigo-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
                 Formulir Resmi Pengajuan Izin
             </span>
-            <span class="text-xs text-slate-700">
-                WIB (Asia/Jakarta): <strong>{{ \Carbon\Carbon::now('Asia/Jakarta')->format('H:i') }} WIB</strong>
-            </span>
+            <div class="inline-flex items-center text-xs text-slate-600 bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-200 self-start sm:self-auto whitespace-nowrap">
+                <span class="w-2 h-2 rounded-full bg-emerald-500 mr-2 animate-pulse shrink-0"></span>
+                <span>WIB (Asia/Jakarta): <strong class="text-slate-900 font-semibold">{{ \Carbon\Carbon::now('Asia/Jakarta')->format('H:i') }} WIB</strong></span>
+            </div>
         </div>
-        <h1 class="text-2xl sm:text-3xl font-bold text-slate-900 mt-3 tracking-tight">
+        <h1 class="text-2xl sm:text-3xl font-bold text-slate-900 mt-3 sm:mt-4 tracking-tight">
             Pengajuan Izin Kantor
         </h1>
-        <p class="text-sm text-slate-700 mt-1">
+        <p class="text-xs sm:text-sm text-slate-600 mt-1 sm:mt-1.5 leading-relaxed">
             Silakan lengkapi data di bawah ini. Pengajuan Anda akan ditinjau langsung oleh tim HRD atau Admin.
         </p>
     </div>
