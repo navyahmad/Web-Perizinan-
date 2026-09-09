@@ -43,7 +43,7 @@
                     <option value="late" {{ request('type') === 'late' ? 'selected' : '' }}>Izin Terlambat</option>
                     <option value="half_day" {{ request('type') === 'half_day' ? 'selected' : '' }}>Izin Setengah Hari</option>
                     <option value="leave" {{ request('type') === 'leave' ? 'selected' : '' }}>Cuti</option>
-                    <option value="personal" {{ request('type') === 'personal' ? 'selected' : '' }}>Izin Pribadi</option>
+                    <option value="emergency" {{ request('type') === 'emergency' ? 'selected' : '' }}>Izin Darurat</option>
                     <option value="sick" {{ request('type') === 'sick' ? 'selected' : '' }}>Izin Sakit</option>
                 </select>
             </div>

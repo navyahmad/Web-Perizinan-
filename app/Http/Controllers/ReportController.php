@@ -40,7 +40,7 @@ class ReportController extends Controller
             'late' => (clone $query)->where('type', 'late')->count(),
             'half_day' => (clone $query)->where('type', 'half_day')->count(),
             'leave' => (clone $query)->where('type', 'leave')->count(),
-            'personal' => (clone $query)->where('type', 'personal')->count(),
+            'emergency' => (clone $query)->whereIn('type', ['emergency', 'personal'])->count(),
             'sick' => (clone $query)->where('type', 'sick')->count(),
         ];
 
@@ -145,7 +145,7 @@ class ReportController extends Controller
                     $duration = ($item->duration ?: 4).' Jam';
                 } elseif ($item->type === 'leave' || $item->type === 'sick') {
                     $duration = ($item->duration ?: 1).' Hari';
-                } elseif ($item->type === 'personal') {
+                } elseif ($item->type === 'emergency' || $item->type === 'personal') {
                     $duration = '1 Hari';
                 }
 

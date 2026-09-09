@@ -1,0 +1,757 @@
+# IMPLEMENTATION REVISION — WEBSITE CRUD IZIN KANTOR
+
+## Status
+FINAL REVISION INSTRUCTION — implement on the existing WebApp.
+
+## Important Scope Rule
+This document is a CHANGE SET for an already implemented application. Do NOT rebuild the application from scratch and do NOT duplicate/redefine features that already exist in the current `README.md` and current codebase.
+
+First inspect the existing implementation and README. Preserve all existing functionality unless this document explicitly changes it.
+
+The current application is already an operational WebApp pengajuan izin kantor. This revision only adds/changes the items in this document.
+
+### VERY IMPORTANT
+- Do NOT introduce Supabase as part of this revision.
+- Do NOT migrate the existing database architecture as part of this revision.
+- Do NOT redesign the whole application.
+- Do NOT add HRIS features, employee accounts, employee CRUD, payroll, attendance, audit log, settings module, HRD management, or other unrelated functionality.
+- Keep the current database driver/storage architecture exactly as it is unless a migration is explicitly required by the changes below.
+- Do NOT rewrite `README.md` to repeat the existing implementation. Only update README if absolutely necessary to document a newly implemented Telegram setup or a factual change; do not duplicate the full specification.
+
+---
+
+# 1. REVISION SUMMARY
+
+Implement exactly these requested changes:
+
+1. Rename **Izin Pribadi** to **Izin Darurat**.
+2. Change the Izin Darurat business rules:
+   - Must be submitted for **Hari H / today**.
+   - Maximum submission time is **08:00 WIB**.
+   - A submission after 08:00 WIB must be rejected by server-side validation.
+   - Do not keep the old H-1 rule for this type.
+   - Because the whole request type is now explicitly `Izin Darurat`, do not show an old generic `emergency` checkbox merely to select whether it is an emergency.
+   - The request type itself represents the emergency nature of the request.
+3. Add **automatic Telegram notification to HRD/Admin when a new request is successfully submitted**.
+4. Replace the existing "Izin Kantor" branding/logo with the provided **General Solusindo logo**.
+5. Change the **Jabatan/Position** input into a dropdown with the exact options defined in Section 4.
+6. Preserve all other existing functionality and business rules.
+
+---
+
+# 2. EXISTING FUNCTIONALITY MUST BE PRESERVED
+
+Do not reimplement or redesign features that are already present in the current project. Existing functionality such as:
+
+- public dynamic permission form
+- public status checking
+- Admin login
+- HRD login
+- separate Admin and HRD dashboards
+- single-step approval
+- rejection with mandatory reason
+- private attachment access
+- email approval/rejection notification
+- WhatsApp `wa.me` Click-to-Chat CTA
+- request number generation
+- reports/export
+- existing validation rules for the other leave types
+
+must remain working unless directly affected by the revisions below.
+
+Before editing, inspect the current code and reuse the existing controllers, services, Form Requests, models, views, components, and styles wherever possible.
+
+---
+
+# 3. REVISED LEAVE TYPE: IZIN DARURAT
+
+## 3.1 User-facing name
+
+Change:
+
+`Izin Pribadi`
+
+to:
+
+`Izin Darurat`
+
+The public dropdown must show:
+
+- Izin Terlambat
+- Izin Setengah Hari
+- Cuti
+- Izin Darurat
+- Izin Sakit
+
+Do not show `Izin Pribadi` anywhere in the active UI.
+
+## 3.2 Internal type value
+
+The preferred new internal slug is:
+
+`emergency`
+
+instead of the old:
+
+`personal`
+
+Update all active application logic that references the old `personal` type:
+
+- validation
+- labels
+- dropdown values
+- controllers/services if applicable
+- report grouping
+- filters
+- detail pages
+- success/status pages
+- email templates
+- WhatsApp messages
+- Telegram messages if type is shown there
+- automated tests
+
+### Historical data migration
+
+If the current database contains existing records with `type = 'personal'`, preserve those records and migrate the type value safely to `emergency` through a Laravel migration, or implement a backward-compatible mapping if changing historical values is unsafe.
+
+Do not delete or lose historical requests.
+
+The migration must be idempotent/safe for the actual current schema.
+
+---
+
+# 4. JABATAN / POSITION DROPDOWN
+
+The current free-text `Jabatan` / `Position` input must become a required select/dropdown.
+
+Use exactly these options, preserving the requested labels:
+
+1. Sales
+2. Marketing
+3. Finance
+4. Operasional
+5. Procurement
+6. Teknisi
+7. Internship
+8. Admin Store
+9. Content Creator
+10. HR
+11. Digital Merketing
+12. SI Officer
+
+Important:
+- Do not replace this with a free-text field in the public form.
+- Do not create a separate CRUD for positions.
+- Do not create a separate database table for positions.
+- Store the selected option in the existing `position` field.
+- The field is required.
+- Server-side validation must use an allow-list matching these options.
+- Reject tampered values that are not in the allow-list.
+
+Keep the existing position value for historical records. The new allow-list applies to new submissions.
+
+Do not silently auto-correct the requested label `Digital Merketing` to `Digital Marketing`; use the exact requested option unless the client later asks for a wording correction.
+
+---
+
+# 5. IZIN DARURAT BUSINESS RULES
+
+Timezone: `Asia/Jakarta` (WIB).
+
+## Required rules
+
+For type `emergency`:
+
+1. `leave_date` MUST equal today's date in `Asia/Jakarta`.
+2. The request must be submitted no later than **08:00 WIB**.
+3. If submission time is **greater than 08:00 WIB**, reject the submission server-side.
+4. The old H-1 requirement must NOT be applied to Izin Darurat.
+5. There is no future-date emergency permission.
+6. There is no normal-schedule variant of Izin Darurat; the type itself represents the emergency.
+7. Reason is required.
+8. Supporting document remains according to the current/common attachment rules unless the existing PRD explicitly says otherwise.
+
+### Boundary behavior
+
+- `07:59:59` WIB → allowed if other validation passes.
+- `08:00:00` WIB → allowed if other validation passes.
+- `08:00:01` WIB → rejected.
+
+Use the server clock and `Asia/Jakarta`; never trust browser JavaScript time for enforcement.
+
+## UI behavior
+
+When the user selects `Izin Darurat`:
+
+- show the Izin Darurat fields
+- show `Tanggal Izin` prefilled/defaulted to today where appropriate
+- prevent selecting a date other than today
+- show a clear information notice such as:
+
+  `Izin Darurat hanya dapat diajukan pada hari yang sama dan maksimal pukul 08.00 WIB.`
+
+- do not show the old H-1 instruction
+- do not show the old `emergency = Ya/Tidak` checkbox because this leave type is already an emergency
+- do not ask for `emergency_reason` as a separate conditional field unless the current product has a separate client-approved requirement for it
+
+## Backend validation
+
+Enforce all rules server-side regardless of the UI state.
+
+A malicious client must not be able to submit:
+
+- `leave_date` tomorrow
+- `leave_date` yesterday
+- submission after 08:00 WIB
+- missing reason
+- an unsupported type value
+
+---
+
+# 6. TELEGRAM NEW REQUEST NOTIFICATION
+
+## 6.1 Objective
+
+Whenever a new leave request is successfully stored and its initial status becomes `pending`, the system must automatically notify HRD/Admin through Telegram so that new requests are not missed.
+
+Telegram is a notification channel only.
+
+Approval and rejection MUST remain inside the WebApp.
+
+Do NOT implement approval/rejection directly from Telegram in this revision.
+
+## 6.2 Recommended recipient model
+
+Use one internal Telegram group containing:
+
+- HRD
+- Admin
+- the office Telegram bot
+
+Recommended group purpose/name:
+
+`Notifikasi Izin Kantor`
+
+Using one group is preferred because it avoids requiring the bot to initiate separate private conversations with each staff account.
+
+Design the implementation so the Telegram chat destination is configurable by environment variable.
+
+Do not hard-code HRD/Admin Telegram user IDs or bot credentials into source code.
+
+## 6.3 Telegram bot
+
+Use the official Telegram Bot API through HTTPS.
+
+No webhook is required for this notification-only feature.
+
+The bot only needs to send outbound notifications.
+
+Bot token must be stored in `.env`, never inside PHP/Blade/JavaScript source code and never committed to Git.
+
+Suggested environment variables:
+
+```env
+TELEGRAM_BOT_TOKEN=your_bot_token
+TELEGRAM_CHAT_ID=your_internal_group_chat_id
+```
+
+If the existing project uses a different config convention, follow that project convention while keeping the token in environment configuration.
+
+## 6.4 Laravel service
+
+Create/reuse a dedicated service:
+
+`app/Services/TelegramNotificationService.php`
+
+Responsibilities:
+
+- obtain bot token from configuration
+- obtain recipient chat ID from configuration
+- build a consistent new-request message
+- optionally create a `Lihat Pengajuan` inline button
+- send the message using Laravel HTTP client
+- normalize/escape message content safely
+- use a reasonable HTTP timeout
+- catch network/API failures
+- return a success/failure result without breaking the request submission
+
+Do not put raw Telegram HTTP calls directly inside `PublicLeaveRequestController`.
+
+## 6.5 Notification trigger
+
+Trigger the Telegram notification only AFTER the leave request has been successfully persisted.
+
+Correct order:
+
+1. Validate public form.
+2. Create leave request.
+3. Generate request number.
+4. Save attachment(s) if applicable.
+5. Initial status = `pending`.
+6. Commit the database transaction if one is used.
+7. Attempt Telegram notification.
+8. Show success page to the employee.
+
+IMPORTANT:
+
+Telegram failure must NOT delete, rollback, or invalidate a successfully saved leave request.
+
+Example:
+
+`Database = success`
+`Telegram = failed`
+
+Result:
+
+`Request remains PENDING and visible to HRD/Admin.`
+
+The failure should be logged/tracked for debugging.
+
+## 6.6 Telegram message content
+
+The notification should be concise but sufficient for HRD/Admin to immediately understand that a new request exists.
+
+Suggested format:
+
+```text
+🔔 PENGAJUAN IZIN BARU
+
+No. Pengajuan: IZN-2026-000001
+Nama: Budi Santoso
+Departemen: General Solusindo
+Jabatan: Teknisi
+Jenis Izin: Izin Sakit
+Tanggal Izin: 09/09/2026
+Status: 🟡 MENUNGGU PERSETUJUAN
+
+Silakan buka dashboard untuk melihat detail dan memproses pengajuan.
+```
+
+Do not include unnecessary sensitive information such as:
+- password
+- database ID
+- raw file paths
+- full uploaded document contents
+- employee email/phone unless explicitly necessary
+
+For sick requests, do not include the detailed medical complaint in the Telegram group notification by default. HRD/Admin can inspect the protected detail page in the WebApp.
+
+## 6.7 Telegram button
+
+Preferred message action:
+
+`[ Lihat Pengajuan ]`
+
+The button may point to the internal WebApp URL:
+
+`{APP_URL}/pengajuan/{id}`
+
+The destination remains protected by WebApp authentication.
+
+Telegram is NOT an authentication mechanism.
+
+If the reviewer is not logged in, the link should lead through the normal WebApp login flow before exposing the request detail.
+
+## 6.8 Notification tracking
+
+Add minimal tracking to the existing `leave_requests` table if the current schema does not already support Telegram status:
+
+- `telegram_status` — `pending`, `sent`, `failed`
+- `telegram_sent_at` — nullable timestamp
+- `telegram_error` — nullable text
+
+Do not create a separate notification system/table unless the existing architecture requires it.
+
+When a new request is created:
+
+`telegram_status = pending`
+
+On successful send:
+
+`telegram_status = sent`
+`telegram_sent_at = current WIB timestamp`
+`telegram_error = null`
+
+On failure:
+
+`telegram_status = failed`
+`telegram_sent_at = null`
+`telegram_error = safe diagnostic message`
+
+The request itself remains `pending` regardless of Telegram status.
+
+## 6.9 Duplicate notification protection
+
+A new request should normally generate only one Telegram notification.
+
+Do not send duplicate Telegram messages just because the success page is refreshed.
+
+The notification must be tied to the successful creation event, not to a GET request.
+
+If retry logic is later added, it must not create uncontrolled duplicates.
+
+---
+
+# 7. GENERAL SOLUSINDO BRANDING / LOGO
+
+Replace the current "Izin Kantor" logo/brand mark with the provided **General Solusindo** logo asset.
+
+Use the supplied image asset:
+
+`logo-gs.png`
+
+The logo must be used as the primary brand mark in the existing relevant locations, such as:
+
+- public leave submission page/header
+- login page
+- Admin dashboard header/sidebar where the old logo currently appears
+- HRD dashboard header/sidebar where the old logo currently appears
+- any shared layout/navigation component containing the old "Izin Kantor" logo
+
+Do not create a new logo.
+
+Do not redraw or alter the supplied logo artwork.
+
+Preserve the logo proportions and prevent stretching.
+
+Use an appropriate responsive max width/height in CSS so it looks clean on desktop and mobile.
+
+Suggested destination in the Laravel project if the asset is not already copied into the project:
+
+`public/images/logo-generalsolusindo.png`
+
+Use accessible alt text:
+
+`General Solusindo`
+
+Search the existing layout/components for the old logo/brand implementation and replace only the branding layer; do not rewrite unrelated page structure.
+
+## Browser title / text branding
+
+Where the current application explicitly says `Izin Kantor` as a product/brand name, change the visible brand to a suitable General Solusindo label without changing functional route names.
+
+Example:
+
+`General Solusindo — Pengajuan Izin`
+
+Do NOT rename technical route names or database/table names merely because the logo/brand changed.
+
+---
+
+# 8. DYNAMIC FORM REQUIREMENTS AFTER REVISION
+
+The form remains a SINGLE dynamic form.
+
+Do not create a separate page for Izin Darurat.
+
+Dropdown:
+
+```text
+Jenis Izin
+┌──────────────────────────────┐
+│ Pilih Jenis Izin         ▼   │
+├──────────────────────────────┤
+│ Izin Terlambat               │
+│ Izin Setengah Hari           │
+│ Cuti                         │
+│ Izin Darurat                 │
+│ Izin Sakit                   │
+└──────────────────────────────┘
+```
+
+When `Izin Darurat` is selected, only its relevant dynamic fields should appear.
+
+When another type is selected, the old Izin Darurat fields/state must be cleared from the form payload so stale values cannot accidentally be submitted.
+
+Use Alpine.js behavior consistent with the existing implementation.
+
+---
+
+# 9. VALIDATION / DATA INTEGRITY REQUIREMENTS
+
+The following changes must be implemented in both UI and server-side validation.
+
+## Position
+
+Must be one of the exact approved dropdown options.
+
+## Izin Darurat
+
+Must satisfy:
+
+```text
+leave_date == today (Asia/Jakarta)
+AND
+submission_time <= 08:00 WIB
+AND
+reason is not empty
+```
+
+## Existing leave types
+
+Keep their current validated business rules unchanged unless directly affected by this revision.
+
+Do not accidentally change:
+
+- Izin Terlambat 07:00 WIB rule
+- Izin Terlambat estimated arrival 09:30 WIB rule
+- Izin Setengah Hari H-1 rule
+- Cuti H-7 rule
+- Izin Sakit 08:30 WIB rule
+- Izin Sakit doctor's note requirement >1 day
+
+These are existing requirements and must remain intact.
+
+---
+
+# 10. EMAIL / WHATSAPP INTERACTION WITH TELEGRAM
+
+Do not change the existing approval notification behavior.
+
+Current approval/rejection flow remains:
+
+```text
+HRD/Admin Approve
+      ↓
+Approved
+      ↓
+Email notification → Employee
+      ↓
+WhatsApp CTA → Employee
+```
+
+or:
+
+```text
+HRD/Admin Reject
+      ↓
+Rejected
+      ↓
+Email notification → Employee
+      ↓
+WhatsApp CTA → Employee
+```
+
+New Telegram notification is ONLY:
+
+```text
+Employee submits new request
+      ↓
+Telegram notification → HRD/Admin
+```
+
+Do not send Telegram notifications on approval/rejection unless a future requirement explicitly asks for that.
+
+---
+
+# 11. SECURITY REQUIREMENTS FOR TELEGRAM
+
+- Keep `TELEGRAM_BOT_TOKEN` in `.env`.
+- Never expose the bot token to Blade, JavaScript, browser HTML, Git, or public routes.
+- Never expose the Telegram chat ID to employees if it is not necessary.
+- Do not let public users send messages through the bot.
+- Do not add Telegram login/authentication.
+- Do not use Telegram as an approval authorization mechanism.
+- The detail link must respect existing authentication/authorization.
+- Sanitize dynamic user-provided strings before putting them into Telegram messages.
+- Do not expose private attachment URLs in Telegram messages.
+
+---
+
+# 12. TELEGRAM SETUP DOCUMENTATION FOR LOCAL/PRODUCTION
+
+Add concise setup instructions to a suitable developer documentation section only if the existing README has no equivalent section. Do not duplicate the whole README.
+
+Required setup steps:
+
+1. Create a Telegram bot using `@BotFather`.
+2. Store its token in `.env`:
+
+```env
+TELEGRAM_BOT_TOKEN=...
+```
+
+3. Create an internal Telegram group for HRD/Admin.
+4. Add the bot to the group and give it the ability to send messages.
+5. Determine the group's `chat_id`.
+6. Store:
+
+```env
+TELEGRAM_CHAT_ID=...
+```
+
+7. Ensure `APP_URL` points to the current WebApp URL so the `Lihat Pengajuan` button can generate a valid link.
+8. Test a new public submission and confirm the Telegram notification arrives.
+
+Do not require a Telegram webhook for this feature.
+
+---
+
+# 13. TESTING REQUIREMENTS FOR THIS REVISION
+
+Do not rewrite the entire existing test suite. Add/update only tests affected by this revision.
+
+## Izin Darurat tests
+
+At minimum:
+
+1. `Izin Pribadi` is no longer accepted as a new active type.
+2. `Izin Darurat` / `emergency` is accepted.
+3. `leave_date = today` passes date validation when within time limit.
+4. `leave_date = tomorrow` fails.
+5. `leave_date = yesterday` fails.
+6. submission at `08:00:00 WIB` passes if all other fields are valid.
+7. submission at `08:00:01 WIB` fails.
+8. reason is required.
+9. validation uses Asia/Jakarta server time rather than browser-provided time.
+
+## Position tests
+
+1. Every listed dropdown option is accepted.
+2. A position outside the allow-list is rejected.
+
+## Telegram tests
+
+At minimum:
+
+1. Successful leave request creation triggers the Telegram service once.
+2. Telegram failure does not rollback/delete the leave request.
+3. A failed Telegram send records `telegram_status=failed` and a safe error.
+4. A successful Telegram send records `telegram_status=sent` and `telegram_sent_at`.
+5. Refreshing the success page does not resend the Telegram notification.
+6. Telegram notification includes the generated request number and correct leave type/date.
+7. Telegram message does not expose private file URLs or sensitive credentials.
+8. If the `Lihat Pengajuan` button is implemented, it points to the correct internal request URL.
+
+## Branding verification
+
+Visually verify the supplied General Solusindo logo appears in the shared branding locations and is not stretched.
+
+---
+
+# 14. IMPLEMENTATION ORDER
+
+Perform the work in this order:
+
+### Step 1 — Inspect existing project
+
+- Read the current README.
+- Inspect the current routes, Form Request, models, services, shared layouts, dynamic form, dashboards, notification code, and tests.
+- Identify the existing implementation of `personal` leave type and current logo.
+- Do not rewrite working features.
+
+### Step 2 — Implement Izin Darurat revision
+
+- rename UI label
+- change internal type mapping to `emergency`
+- update validation/business rules
+- update affected reports/filters/templates/messages
+- preserve historical records
+
+### Step 3 — Implement position dropdown
+
+- replace free-text position input with select
+- update server-side allow-list
+- preserve historical records
+
+### Step 4 — Implement Telegram notification
+
+- add config
+- add service
+- add migration fields if necessary
+- add creation-event trigger
+- add failure-safe handling
+- add optional `Lihat Pengajuan` button
+
+### Step 5 — Replace branding logo
+
+- use provided `logo-gs.png`
+- update shared layout references
+- preserve dimensions/aspect ratio
+
+### Step 6 — Add/update only impacted tests
+
+### Step 7 — Run existing test suite
+
+### Step 8 — Manual verification
+
+Test:
+
+- all 5 leave types
+- Izin Darurat before 08:00
+- Izin Darurat exactly at 08:00
+- Izin Darurat after 08:00
+- invalid position value
+- valid position dropdown values
+- Telegram notification
+- Telegram failure simulation
+- dashboard visibility of new pending request
+- General Solusindo logo on public and authenticated pages
+- existing approval/rejection/email/WhatsApp flows still work
+
+---
+
+# 15. ACCEPTANCE CRITERIA
+
+The revision is accepted only when ALL of the following are true:
+
+### Izin Darurat
+
+- [ ] UI says `Izin Darurat`, not `Izin Pribadi`.
+- [ ] New submissions use `emergency` as the active internal type.
+- [ ] Only today's date is selectable/accepted.
+- [ ] `08:00:00` is accepted.
+- [ ] Any submission after `08:00:00` WIB is rejected.
+- [ ] The old H-1 rule is gone.
+- [ ] Reason is mandatory.
+- [ ] No unnecessary old emergency yes/no toggle is shown.
+
+### Position
+
+- [ ] Jabatan is a dropdown.
+- [ ] All 12 requested options are present.
+- [ ] Server rejects non-approved position values.
+- [ ] Existing historical positions remain intact.
+
+### Telegram
+
+- [ ] Every successfully created new pending request triggers one Telegram notification.
+- [ ] Notification reaches the configured HRD/Admin destination.
+- [ ] Message contains at least request number, employee name, department, position, leave type, leave date, and pending status.
+- [ ] Telegram failure never causes the leave request to fail.
+- [ ] Telegram status is trackable.
+- [ ] Optional `Lihat Pengajuan` link opens the protected WebApp detail page.
+- [ ] No approval/rejection action occurs inside Telegram.
+
+### Branding
+
+- [ ] Provided General Solusindo logo is used instead of the old Izin Kantor logo.
+- [ ] Logo is not stretched/distorted.
+- [ ] Existing layout remains visually consistent.
+
+### Regression
+
+- [ ] Existing leave types still work.
+- [ ] Existing single-step approval still works.
+- [ ] Existing rejection flow still works.
+- [ ] Existing email notification still works.
+- [ ] Existing WhatsApp CTA still works.
+- [ ] Existing public status check still works.
+- [ ] Existing reports/export still work.
+- [ ] Existing tests remain passing except where expected assertions were intentionally changed for this revision.
+
+---
+
+# 16. FINAL INSTRUCTION TO THE IMPLEMENTATION AGENT
+
+This is a targeted revision of an existing working WebApp.
+
+Do not redesign the product.
+Do not expand the product.
+Do not introduce Supabase in this revision.
+Do not recreate features already implemented in the README/current codebase.
+Do not create new employee accounts or HRIS functionality.
+
+Make only the changes defined in this document, preserve the existing architecture, and verify that the previous application functionality continues to work after the revision.
+
+Before editing each area, inspect the existing implementation and modify the smallest appropriate set of files.

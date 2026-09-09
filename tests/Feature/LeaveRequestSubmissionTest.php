@@ -28,7 +28,7 @@ class LeaveRequestSubmissionTest extends TestCase
             'email' => 'ahmad@example.com',
             'phone' => '081234567890',
             'department' => 'General Solusindo',
-            'position' => 'Technical Support',
+            'position' => 'Teknisi',
             'type' => 'late',
             'leave_date' => '2026-09-08',
             'estimated_arrival' => '09:00',
@@ -41,7 +41,7 @@ class LeaveRequestSubmissionTest extends TestCase
             'email' => 'ahmad@example.com',
             'phone' => '6281234567890',
             'department' => 'General Solusindo',
-            'position' => 'Technical Support',
+            'position' => 'Teknisi',
             'type' => 'late',
             'status' => 'pending',
             'estimated_arrival' => '09:00',
@@ -63,7 +63,7 @@ class LeaveRequestSubmissionTest extends TestCase
             'email' => 'budi@example.com',
             'phone' => '081234567890',
             'department' => 'Tabinaco',
-            'position' => 'Staff',
+            'position' => 'Operasional',
             'type' => 'late',
             'leave_date' => '2026-09-08',
             'estimated_arrival' => '09:00',
@@ -79,7 +79,7 @@ class LeaveRequestSubmissionTest extends TestCase
             'email' => 'budi@example.com',
             'phone' => '081234567890',
             'department' => 'Tabinaco',
-            'position' => 'Staff',
+            'position' => 'Operasional',
             'type' => 'late',
             'leave_date' => '2026-09-08',
             'estimated_arrival' => '09:00',
@@ -101,7 +101,7 @@ class LeaveRequestSubmissionTest extends TestCase
             'email' => 'charlie@example.com',
             'phone' => '081234567890',
             'department' => 'General Solusindo',
-            'position' => 'Staff',
+            'position' => 'Operasional',
             'type' => 'late',
             'leave_date' => '2026-09-08',
             'estimated_arrival' => '09:45', // Melebihi 09.30
@@ -122,7 +122,7 @@ class LeaveRequestSubmissionTest extends TestCase
             'email' => 'diana@example.com',
             'phone' => '081234567890',
             'department' => 'General Solusindo',
-            'position' => 'Designer',
+            'position' => 'Marketing',
             'type' => 'half_day',
             'leave_date' => '2026-09-08',
             'half_day_type' => 'Pulang lebih awal',
@@ -139,7 +139,7 @@ class LeaveRequestSubmissionTest extends TestCase
             'email' => 'diana@example.com',
             'phone' => '081234567890',
             'department' => 'General Solusindo',
-            'position' => 'Designer',
+            'position' => 'Marketing',
             'type' => 'half_day',
             'leave_date' => '2026-09-09',
             'half_day_type' => 'Pulang lebih awal',
@@ -190,39 +190,184 @@ class LeaveRequestSubmissionTest extends TestCase
         $responseSuccess->assertSessionHasNoErrors();
     }
 
-    public function test_personal_leave_on_same_day_requires_emergency(): void
+    public function test_emergency_leave_today_before_08_00_wib_succeeds(): void
     {
-        Carbon::setTestNow(Carbon::create(2026, 9, 8, 10, 0, 0, 'Asia/Jakarta'));
+        Carbon::setTestNow(Carbon::create(2026, 9, 8, 7, 45, 0, 'Asia/Jakarta'));
 
-        // Hari H tanpa emergency -> gagal
+        $response = $this->post('/ajukan-izin', [
+            'name' => 'Fani',
+            'email' => 'fani@example.com',
+            'phone' => '081234567890',
+            'department' => 'Tabinaco',
+            'position' => 'Finance',
+            'type' => 'emergency',
+            'leave_date' => '2026-09-08',
+            'reason' => 'Ada musibah keluarga mendadak pagi ini.',
+        ]);
+
+        $response->assertSessionHasNoErrors();
+        $this->assertDatabaseHas('leave_requests', [
+            'name' => 'Fani',
+            'type' => 'emergency',
+            'emergency' => 1,
+            'duration' => 1.0,
+        ]);
+    }
+
+    public function test_emergency_leave_today_exactly_at_08_00_00_wib_succeeds(): void
+    {
+        Carbon::setTestNow(Carbon::create(2026, 9, 8, 8, 0, 0, 'Asia/Jakarta'));
+
+        $response = $this->post('/ajukan-izin', [
+            'name' => 'Fani',
+            'email' => 'fani@example.com',
+            'phone' => '081234567890',
+            'department' => 'Tabinaco',
+            'position' => 'Finance',
+            'type' => 'emergency',
+            'leave_date' => '2026-09-08',
+            'reason' => 'Ada keperluan darurat.',
+        ]);
+
+        $response->assertSessionHasNoErrors();
+    }
+
+    public function test_emergency_leave_after_08_00_00_wib_is_rejected(): void
+    {
+        Carbon::setTestNow(Carbon::create(2026, 9, 8, 8, 0, 1, 'Asia/Jakarta'));
+
         $response = $this->from('/ajukan-izin')->post('/ajukan-izin', [
             'name' => 'Fani',
             'email' => 'fani@example.com',
             'phone' => '081234567890',
             'department' => 'Tabinaco',
-            'position' => 'Accountant',
-            'type' => 'personal',
+            'position' => 'Finance',
+            'type' => 'emergency',
             'leave_date' => '2026-09-08',
-            'reason' => 'Urusan mendadak',
+            'reason' => 'Darurat',
         ]);
 
-        $response->assertSessionHasErrors('emergency');
+        $response->assertSessionHasErrors('type');
+    }
 
-        // Hari H dengan emergency dan alasan -> berhasil
-        $responseSuccess = $this->post('/ajukan-izin', [
+    public function test_emergency_leave_for_tomorrow_fails(): void
+    {
+        Carbon::setTestNow(Carbon::create(2026, 9, 8, 7, 30, 0, 'Asia/Jakarta'));
+
+        $response = $this->from('/ajukan-izin')->post('/ajukan-izin', [
             'name' => 'Fani',
             'email' => 'fani@example.com',
             'phone' => '081234567890',
             'department' => 'Tabinaco',
-            'position' => 'Accountant',
-            'type' => 'personal',
-            'leave_date' => '2026-09-08',
-            'emergency' => '1',
-            'emergency_reason' => 'Rumah kebanjiran mendadak tadi pagi',
-            'reason' => 'Membersihkan dan mengamankan perabot rumah',
+            'position' => 'Finance',
+            'type' => 'emergency',
+            'leave_date' => '2026-09-09',
+            'reason' => 'Darurat besok',
         ]);
 
-        $responseSuccess->assertSessionHasNoErrors();
+        $response->assertSessionHasErrors('leave_date');
+    }
+
+    public function test_emergency_leave_for_yesterday_fails(): void
+    {
+        Carbon::setTestNow(Carbon::create(2026, 9, 8, 7, 30, 0, 'Asia/Jakarta'));
+
+        $response = $this->from('/ajukan-izin')->post('/ajukan-izin', [
+            'name' => 'Fani',
+            'email' => 'fani@example.com',
+            'phone' => '081234567890',
+            'department' => 'Tabinaco',
+            'position' => 'Finance',
+            'type' => 'emergency',
+            'leave_date' => '2026-09-07',
+            'reason' => 'Darurat kemarin',
+        ]);
+
+        $response->assertSessionHasErrors('leave_date');
+    }
+
+    public function test_emergency_leave_requires_reason(): void
+    {
+        Carbon::setTestNow(Carbon::create(2026, 9, 8, 7, 30, 0, 'Asia/Jakarta'));
+
+        $response = $this->from('/ajukan-izin')->post('/ajukan-izin', [
+            'name' => 'Fani',
+            'email' => 'fani@example.com',
+            'phone' => '081234567890',
+            'department' => 'Tabinaco',
+            'position' => 'Finance',
+            'type' => 'emergency',
+            'leave_date' => '2026-09-08',
+            'reason' => '',
+        ]);
+
+        $response->assertSessionHasErrors('reason');
+    }
+
+    public function test_personal_type_is_no_longer_accepted(): void
+    {
+        Carbon::setTestNow(Carbon::create(2026, 9, 8, 7, 30, 0, 'Asia/Jakarta'));
+
+        $response = $this->from('/ajukan-izin')->post('/ajukan-izin', [
+            'name' => 'Fani',
+            'email' => 'fani@example.com',
+            'phone' => '081234567890',
+            'department' => 'Tabinaco',
+            'position' => 'Finance',
+            'type' => 'personal',
+            'leave_date' => '2026-09-08',
+            'reason' => 'Izin pribadi lama',
+        ]);
+
+        $response->assertSessionHasErrors('type');
+    }
+
+    public function test_position_allowlist_accepts_all_12_options(): void
+    {
+        Carbon::setTestNow(Carbon::create(2026, 9, 8, 6, 30, 0, 'Asia/Jakarta'));
+
+        $positions = [
+            'Sales', 'Marketing', 'Finance', 'Operasional',
+            'Procurement', 'Teknisi', 'Internship', 'Admin Store',
+            'Content Creator', 'HR', 'Digital Merketing', 'SI Officer',
+        ];
+
+        foreach ($positions as $index => $pos) {
+            $response = $this->post('/ajukan-izin', [
+                'name' => "Karyawan {$index}",
+                'email' => "user{$index}@example.com",
+                'phone' => '081234567890',
+                'department' => 'General Solusindo',
+                'position' => $pos,
+                'type' => 'late',
+                'leave_date' => '2026-09-08',
+                'estimated_arrival' => '09:00',
+                'reason' => 'Ada kendala perjalanan.',
+                'agreement' => '1',
+            ]);
+
+            $response->assertSessionHasNoErrors();
+        }
+    }
+
+    public function test_position_outside_allowlist_is_rejected(): void
+    {
+        Carbon::setTestNow(Carbon::create(2026, 9, 8, 6, 30, 0, 'Asia/Jakarta'));
+
+        $response = $this->from('/ajukan-izin')->post('/ajukan-izin', [
+            'name' => 'Hacker',
+            'email' => 'hacker@example.com',
+            'phone' => '081234567890',
+            'department' => 'General Solusindo',
+            'position' => 'CEO / Random Position',
+            'type' => 'late',
+            'leave_date' => '2026-09-08',
+            'estimated_arrival' => '09:00',
+            'reason' => 'Kendala perjalanan',
+            'agreement' => '1',
+        ]);
+
+        $response->assertSessionHasErrors('position');
     }
 
     public function test_sick_leave_rules_with_work_hours_and_doctor_note(): void
@@ -236,7 +381,7 @@ class LeaveRequestSubmissionTest extends TestCase
             'email' => 'gilang@example.com',
             'phone' => '081234567890',
             'department' => 'General Solusindo',
-            'position' => 'Engineer',
+            'position' => 'Teknisi',
             'type' => 'sick',
             'leave_date' => '2026-09-08',
             'duration' => 1,
@@ -252,7 +397,7 @@ class LeaveRequestSubmissionTest extends TestCase
             'email' => 'gilang@example.com',
             'phone' => '081234567890',
             'department' => 'General Solusindo',
-            'position' => 'Engineer',
+            'position' => 'Teknisi',
             'type' => 'sick',
             'leave_date' => '2026-09-08',
             'duration' => 3, // > 1 hari
@@ -272,7 +417,7 @@ class LeaveRequestSubmissionTest extends TestCase
             'email' => 'gilang@example.com',
             'phone' => '081234567890',
             'department' => 'General Solusindo',
-            'position' => 'Engineer',
+            'position' => 'Teknisi',
             'type' => 'sick',
             'leave_date' => '2026-09-08',
             'duration' => 3,

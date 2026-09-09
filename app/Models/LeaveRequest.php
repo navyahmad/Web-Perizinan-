@@ -37,6 +37,9 @@ class LeaveRequest extends Model
         'email_status',
         'email_sent_at',
         'email_error',
+        'telegram_status',
+        'telegram_sent_at',
+        'telegram_error',
     ];
 
     protected function casts(): array
@@ -48,6 +51,7 @@ class LeaveRequest extends Model
             'duration' => 'float',
             'processed_at' => 'datetime',
             'email_sent_at' => 'datetime',
+            'telegram_sent_at' => 'datetime',
         ];
     }
 
@@ -82,7 +86,7 @@ class LeaveRequest extends Model
             'late' => 'Izin Terlambat',
             'half_day' => 'Izin Setengah Hari',
             'leave' => 'Cuti',
-            'personal' => 'Izin Pribadi',
+            'emergency', 'personal' => 'Izin Darurat',
             'sick' => 'Izin Sakit',
             default => ucfirst($this->type),
         };

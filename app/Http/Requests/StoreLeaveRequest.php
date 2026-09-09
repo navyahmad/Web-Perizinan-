@@ -21,8 +21,11 @@ class StoreLeaveRequest extends FormRequest
             'email' => ['required', 'email', 'max:255'],
             'phone' => ['required', 'string', 'min:8', 'max:25'],
             'department' => ['required', 'in:General Solusindo,Tabinaco'],
-            'position' => ['required', 'string', 'max:255'],
-            'type' => ['required', 'in:late,half_day,leave,personal,sick'],
+            'position' => [
+                'required',
+                'in:Sales,Marketing,Finance,Operasional,Procurement,Teknisi,Internship,Admin Store,Content Creator,HR,Digital Merketing,SI Officer',
+            ],
+            'type' => ['required', 'in:late,half_day,leave,emergency,sick'],
             'leave_date' => ['required', 'date_format:Y-m-d'],
             'reason' => ['nullable', 'string', 'max:2000'],
             'emergency' => ['nullable', 'boolean'],
@@ -125,21 +128,18 @@ class StoreLeaveRequest extends FormRequest
                 if (empty(trim((string) $this->input('reason')))) {
                     $validator->errors()->add('reason', 'Alasan cuti wajib diisi.');
                 }
-            } elseif ($type === 'personal') {
-                // Izin Pribadi
-                if (empty(trim((string) $this->input('reason')))) {
-                    $validator->errors()->add('reason', 'Alasan izin pribadi wajib diisi.');
+            } elseif ($type === 'emergency') {
+                // Izin Darurat (Hari H only, max 08:00:00 WIB)
+                if ($leaveDate !== $today) {
+                    $validator->errors()->add('leave_date', 'Izin darurat hanya dapat diajukan untuk tanggal hari ini.');
                 }
 
-                if ($leaveDate === $today) {
-                    if (! $emergency) {
-                        $validator->errors()->add('emergency', 'Izin pribadi pada hari H hanya diperbolehkan untuk kondisi mendesak.');
-                    }
-                    if (empty($emergencyReason)) {
-                        $validator->errors()->add('emergency_reason', 'Alasan kondisi mendesak wajib diisi untuk pengajuan hari H.');
-                    }
-                } elseif ($leaveDate < $tomorrow) {
-                    $validator->errors()->add('leave_date', 'Pengajuan izin pribadi normal minimal dilakukan H-1.');
+                if ($now->format('H:i:s') > '08:00:00') {
+                    $validator->errors()->add('type', 'Pengajuan izin darurat maksimal diajukan pukul 08.00 WIB.');
+                }
+
+                if (empty(trim((string) $this->input('reason')))) {
+                    $validator->errors()->add('reason', 'Alasan izin darurat wajib diisi.');
                 }
             } elseif ($type === 'sick') {
                 // Izin Sakit

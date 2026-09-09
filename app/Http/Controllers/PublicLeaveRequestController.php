@@ -6,10 +6,12 @@ use App\Http\Requests\StoreLeaveRequest;
 use App\Models\LeaveRequest;
 use App\Models\LeaveRequestAttachment;
 use App\Services\LeaveRequestService;
+use App\Services\TelegramNotificationService;
 use App\Services\WhatsAppMessageService;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
 
 class PublicLeaveRequestController extends Controller
@@ -28,7 +30,8 @@ class PublicLeaveRequestController extends Controller
     public function store(
         StoreLeaveRequest $request,
         LeaveRequestService $leaveService,
-        WhatsAppMessageService $waService
+        WhatsAppMessageService $waService,
+        TelegramNotificationService $telegramService
     ): RedirectResponse {
         $validated = $request->validated();
 
@@ -41,10 +44,13 @@ class PublicLeaveRequestController extends Controller
             $duration = round(abs($end->diffInMinutes($start)) / 60, 2);
         } elseif ($type === 'sick' || $type === 'leave') {
             $duration = isset($validated['duration']) ? (float) $validated['duration'] : 1.0;
+        } elseif ($type === 'emergency') {
+            $duration = 1.0;
         }
 
         $phone = $waService->normalizePhone($validated['phone']);
-        $emergency = filter_var($request->input('emergency', false), FILTER_VALIDATE_BOOLEAN);
+        // For type emergency, the request is inherently emergency
+        $emergency = $type === 'emergency' ? true : filter_var($request->input('emergency', false), FILTER_VALIDATE_BOOLEAN);
 
         $leaveRequest = DB::transaction(function () use ($validated, $type, $duration, $phone, $emergency, $leaveService, $request) {
             $requestNumber = $leaveService->generateRequestNumber();
@@ -65,10 +71,11 @@ class PublicLeaveRequestController extends Controller
                 'duration' => $duration,
                 'reason' => $validated['reason'] ?? null,
                 'emergency' => $emergency,
-                'emergency_reason' => $emergency ? ($validated['emergency_reason'] ?? null) : null,
+                'emergency_reason' => ($emergency && $type !== 'emergency') ? ($validated['emergency_reason'] ?? null) : null,
                 'contactable' => isset($validated['contactable']) ? filter_var($validated['contactable'], FILTER_VALIDATE_BOOLEAN) : null,
                 'status' => 'pending',
                 'email_status' => 'pending',
+                'telegram_status' => 'pending',
             ]);
 
             // Process file uploads
@@ -100,6 +107,17 @@ class PublicLeaveRequestController extends Controller
 
             return $record;
         });
+
+        // Strictly after DB commit: trigger Telegram notification fail-safely
+        try {
+            $telegramService->sendNewRequestNotification($leaveRequest);
+        } catch (\Throwable $e) {
+            Log::error("Failed sending telegram notification for {$leaveRequest->request_number}: {$e->getMessage()}");
+            $leaveRequest->update([
+                'telegram_status' => 'failed',
+                'telegram_error' => substr($e->getMessage(), 0, 500),
+            ]);
+        }
 
         return redirect()->route('public.success', $leaveRequest->request_number)
             ->with('success', 'Pengajuan izin Anda berhasil dikirim.');

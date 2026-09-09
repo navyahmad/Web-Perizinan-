@@ -2,12 +2,9 @@
 
 @section('content')
 <div class="min-h-[70vh] flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-    <div class="sm:mx-auto sm:w-full sm:max-w-md">
-        <div class="w-12 h-12 mx-auto rounded-xl bg-indigo-600 flex items-center justify-center text-white shadow-md">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-            </svg>
-        </div>
+    <div class="sm:mx-auto sm:w-full sm:max-w-md text-center">
+        <img src="{{ asset('images/logo-generalsolusindo.png') }}" alt="General Solusindo"
+            class="h-12 w-auto mx-auto object-contain">
         <h2 class="mt-4 text-center text-2xl font-bold tracking-tight text-slate-900">
             Login Staf Kantor
         </h2>

@@ -128,8 +128,8 @@
                     <span class="font-bold text-slate-900">{{ number_format($byType['leave']) }}</span>
                 </div>
                 <div class="flex justify-between items-center text-sm">
-                    <span class="text-slate-600">Izin Pribadi</span>
-                    <span class="font-bold text-slate-900">{{ number_format($byType['personal']) }}</span>
+                    <span class="text-slate-600">Izin Darurat</span>
+                    <span class="font-bold text-slate-900">{{ number_format($byType['emergency']) }}</span>
                 </div>
                 <div class="flex justify-between items-center text-sm">
                     <span class="text-slate-600">Izin Sakit</span>
@@ -207,7 +207,7 @@
                                         {{ $req->duration ? $req->duration . ' Jam' : '4 Jam' }}
                                     @elseif($req->type === 'leave' || $req->type === 'sick')
                                         {{ $req->duration ? $req->duration . ' Hari' : '1 Hari' }}
-                                    @elseif($req->type === 'personal')
+                                    @elseif($req->type === 'emergency' || $req->type === 'personal')
                                         1 Hari
                                     @else
                                         -

@@ -22,7 +22,7 @@ Route::get('/', function () {
 
 Route::get('/ajukan-izin', [PublicLeaveRequestController::class, 'create'])->name('public.form');
 Route::post('/ajukan-izin', [PublicLeaveRequestController::class, 'store'])
-    ->middleware('throttle:10,1')
+    ->middleware('throttle:30,1')
     ->name('public.store');
 
 Route::get('/pengajuan/sukses/{request_number}', [PublicLeaveRequestController::class, 'success'])->name('public.success');

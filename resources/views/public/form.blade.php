@@ -28,6 +28,10 @@
             return this.currentTime > '07:00';
         },
 
+        get isPast8Am() {
+            return this.currentTime > '08:00';
+        },
+
         get isPast830Am() {
             return this.currentTime >= '08:30';
         }
@@ -140,9 +144,29 @@
                         <label for="position" class="block text-sm font-medium text-slate-700 mb-1">
                             Jabatan / Divisi <span class="text-rose-500">*</span>
                         </label>
-                        <input type="text" id="position" name="position" required value="{{ old('position') }}"
-                            placeholder="Contoh: Staff IT / Finance"
-                            class="w-full rounded-lg border border-slate-300 px-3.5 py-2 text-slate-900 focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 text-sm">
+                        <select id="position" name="position" required
+                            class="w-full rounded-lg border border-slate-300 px-3.5 py-2 text-slate-900 focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 text-sm bg-white">
+                            <option value="">-- Pilih Jabatan / Posisi --</option>
+                            @php
+                                $positions = [
+                                    'Sales',
+                                    'Marketing',
+                                    'Finance',
+                                    'Operasional',
+                                    'Procurement',
+                                    'Teknisi',
+                                    'Internship',
+                                    'Admin Store',
+                                    'Content Creator',
+                                    'HR',
+                                    'Digital Merketing',
+                                    'SI Officer',
+                                ];
+                            @endphp
+                            @foreach($positions as $pos)
+                                <option value="{{ $pos }}" {{ old('position') == $pos ? 'selected' : '' }}>{{ $pos }}</option>
+                            @endforeach
+                        </select>
                         @error('position') <p class="text-xs text-rose-600 mt-1">{{ $message }}</p> @enderror
                     </div>
                 </div>
@@ -164,7 +188,7 @@
                         <option value="late">Izin Terlambat</option>
                         <option value="half_day">Izin Setengah Hari</option>
                         <option value="leave">Cuti</option>
-                        <option value="personal">Izin Pribadi</option>
+                        <option value="emergency">Izin Darurat</option>
                         <option value="sick">Izin Sakit</option>
                     </select>
                     @error('type') <p class="text-xs text-rose-600 mt-1">{{ $message }}</p> @enderror
@@ -379,54 +403,40 @@
                     </div>
                 </div>
 
-                <!-- 3.4 TYPE: PERSONAL (Izin Pribadi) -->
-                <div x-show="type === 'personal'" class="space-y-4 bg-slate-50 p-5 rounded-xl border border-slate-200">
+                <!-- 3.4 TYPE: EMERGENCY (Izin Darurat) -->
+                <div x-show="type === 'emergency'" class="space-y-4 bg-slate-50 p-5 rounded-xl border border-slate-200">
                     <div class="bg-amber-50 border-l-4 border-amber-500 p-3 text-xs text-amber-900 rounded-r">
-                        <strong>Ketentuan Izin Pribadi:</strong>
+                        <strong>Ketentuan Izin Darurat:</strong>
                         <ul class="list-disc list-inside mt-1 space-y-0.5">
-                            <li>Pengajuan normal minimal <strong>H-1</strong>.</li>
-                            <li>Pengajuan pada <strong>hari H</strong> hanya diperbolehkan untuk kondisi mendesak dan wajib menyertakan alasan.</li>
+                            <li>Izin Darurat hanya dapat diajukan pada hari yang sama dan maksimal pukul <strong>08.00 WIB</strong>.</li>
+                            <li>Tipe izin ini merepresentasikan kondisi darurat/mendesak tanpa perlu memilih opsi terpisah.</li>
                         </ul>
                     </div>
 
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-sm font-medium text-slate-700 mb-1">
-                                Tanggal Izin Pribadi <span class="text-rose-500">*</span>
-                            </label>
-                            <input type="date" name="leave_date" :min="todayDate" value="{{ old('leave_date') }}"
-                                :disabled="type !== 'personal'" {{ old('type', 'late') !== 'personal' ? 'disabled' : '' }}
-                                class="w-full rounded-lg border border-slate-300 px-3.5 py-2 text-slate-900 focus:ring-2 focus:ring-indigo-600 text-sm">
-                            @error('leave_date') <p class="text-xs text-rose-600 mt-1">{{ $message }}</p> @enderror
-                        </div>
-
-                        <div class="flex items-center pt-6">
-                            <label class="flex items-center text-sm font-medium text-slate-700">
-                                <input type="checkbox" name="emergency" value="1" x-model="emergency"
-                                    :disabled="type !== 'personal'" {{ old('type', 'late') !== 'personal' ? 'disabled' : '' }}
-                                    class="h-4 w-4 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500">
-                                <span class="ml-2">Kondisi Mendesak (Wajib jika izin untuk Hari Ini)</span>
-                            </label>
-                        </div>
-                    </div>
-
-                    <div x-show="emergency" class="space-y-1">
-                        <label for="emergency_reason_personal" class="block text-sm font-medium text-rose-700">
-                            Alasan Kondisi Mendesak <span class="text-rose-500">*</span>
-                        </label>
-                        <textarea id="emergency_reason_personal" name="emergency_reason" rows="2"
-                            :disabled="type !== 'personal'" {{ old('type', 'late') !== 'personal' ? 'disabled' : '' }}
-                            placeholder="Jelaskan alasan kondisi mendesak mengapa diajukan pada hari H..."
-                            class="w-full rounded-lg border border-rose-300 px-3.5 py-2 text-slate-900 focus:ring-2 focus:ring-rose-500 text-sm bg-rose-50/30">{{ old('emergency_reason') }}</textarea>
-                        @error('emergency_reason') <p class="text-xs text-rose-600 mt-1">{{ $message }}</p> @enderror
+                    <div x-show="isPast8Am" class="p-3 bg-rose-50 border border-rose-300 rounded-lg text-xs text-rose-900 flex items-center">
+                        <svg class="w-5 h-5 text-rose-600 mr-2 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                        <span>Waktu saat ini telah melewati pukul 08.00 WIB. Pengajuan Izin Darurat akan ditolak oleh sistem.</span>
                     </div>
 
                     <div>
-                        <label for="reason_personal" class="block text-sm font-medium text-slate-700 mb-1">
-                            Alasan Izin Pribadi <span class="text-rose-500">*</span>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">
+                            Tanggal Izin Darurat <span class="text-rose-500">*</span>
                         </label>
-                        <textarea id="reason_personal" name="reason" rows="3" placeholder="Sebutkan keperluan izin pribadi..."
-                            :disabled="type !== 'personal'" {{ old('type', 'late') !== 'personal' ? 'disabled' : '' }}
+                        <input type="date" name="leave_date" :value="todayDate" value="{{ \Carbon\Carbon::now('Asia/Jakarta')->toDateString() }}" readonly
+                            :disabled="type !== 'emergency'" {{ old('type') !== 'emergency' ? 'disabled' : '' }}
+                            class="w-full rounded-lg border border-slate-300 px-3.5 py-2 bg-slate-100 text-slate-600 text-sm cursor-not-allowed">
+                        <p class="text-xs text-slate-500 mt-1">Hanya berlaku untuk tanggal hari ini.</p>
+                        @error('leave_date') <p class="text-xs text-rose-600 mt-1">{{ $message }}</p> @enderror
+                    </div>
+
+                    <div>
+                        <label for="reason_emergency" class="block text-sm font-medium text-slate-700 mb-1">
+                            Alasan Izin Darurat <span class="text-rose-500">*</span>
+                        </label>
+                        <textarea id="reason_emergency" name="reason" rows="3" placeholder="Jelaskan keperluan kondisi darurat Anda..."
+                            :disabled="type !== 'emergency'" {{ old('type') !== 'emergency' ? 'disabled' : '' }}
                             class="w-full rounded-lg border border-slate-300 px-3.5 py-2 text-slate-900 focus:ring-2 focus:ring-indigo-600 text-sm">{{ old('reason') }}</textarea>
                         @error('reason') <p class="text-xs text-rose-600 mt-1">{{ $message }}</p> @enderror
                     </div>
