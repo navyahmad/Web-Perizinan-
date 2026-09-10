@@ -22,18 +22,25 @@ class LeaveRequestService
         $prefix = "IZN-{$year}-";
 
         return DB::transaction(function () use ($year, $prefix) {
-            // Lock and get latest sequence for the current year
-            $latest = LeaveRequest::where('request_number', 'LIKE', "{$prefix}%")
+            DB::table('leave_request_sequences')->insertOrIgnore([
+                [
+                    'year' => $year,
+                    'last_sequence' => 0,
+                ],
+            ]);
+
+            $lastSequence = DB::table('leave_request_sequences')
+                ->where('year', $year)
                 ->lockForUpdate()
-                ->orderBy('id', 'desc')
-                ->first();
+                ->value('last_sequence');
 
-            $sequence = 1;
-            if ($latest && preg_match("/^IZN-{$year}-(\d{6})$/", $latest->request_number, $matches)) {
-                $sequence = (int) $matches[1] + 1;
-            }
+            $nextSequence = ((int) $lastSequence) + 1;
 
-            return sprintf('%s%06d', $prefix, $sequence);
+            DB::table('leave_request_sequences')
+                ->where('year', $year)
+                ->update(['last_sequence' => $nextSequence]);
+
+            return sprintf('%s%06d', $prefix, $nextSequence);
         });
     }
 

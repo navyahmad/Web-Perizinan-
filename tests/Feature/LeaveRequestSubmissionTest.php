@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\LeaveRequest;
+use App\Services\LeaveRequestService;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -50,6 +51,23 @@ class LeaveRequestSubmissionTest extends TestCase
         $leave = LeaveRequest::first();
         $this->assertMatchesRegularExpression('/^IZN-2026-\d{6}$/', $leave->request_number);
         $response->assertRedirect(route('public.success', $leave->request_number));
+    }
+
+    public function test_request_number_generator_allocates_unique_sequential_numbers(): void
+    {
+        Carbon::setTestNow(Carbon::create(2026, 9, 8, 6, 30, 0, 'Asia/Jakarta'));
+
+        $service = app(LeaveRequestService::class);
+
+        $firstNumber = $service->generateRequestNumber();
+        $secondNumber = $service->generateRequestNumber();
+
+        $this->assertSame('IZN-2026-000001', $firstNumber);
+        $this->assertSame('IZN-2026-000002', $secondNumber);
+        $this->assertDatabaseHas('leave_request_sequences', [
+            'year' => 2026,
+            'last_sequence' => 2,
+        ]);
     }
 
     public function test_late_request_after_07_00_wib_requires_emergency(): void

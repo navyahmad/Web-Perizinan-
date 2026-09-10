@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -12,9 +13,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('leave_requests', function (Blueprint $table) {
-            $table->string('telegram_status', 20)->default('pending')->after('email_error');
-            $table->timestamp('telegram_sent_at')->nullable()->after('telegram_status');
-            $table->text('telegram_error')->nullable()->after('telegram_sent_at');
+            $table->string('telegram_status', 20)->default('pending');
+            $table->timestamp('telegram_sent_at')->nullable();
+            $table->text('telegram_error')->nullable();
         });
 
         // Migrate historical personal records to emergency
