@@ -5,7 +5,7 @@
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-v4-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white)](https://tailwindcss.com)
 [![Alpine.js](https://img.shields.io/badge/Alpine.js-3.x-8BC0D0?style=for-the-badge&logo=alpinedotjs&logoColor=white)](https://alpinejs.dev)
 [![Telegram Bot API](https://img.shields.io/badge/Telegram-Bot%20Notification-2CA5E0?style=for-the-badge&logo=telegram&logoColor=white)](https://core.telegram.org/bots/api)
-[![Tests](https://img.shields.io/badge/Tests-39%20Passed%20(147%20Assertions)-success?style=for-the-badge)](tests)
+[![Tests](https://img.shields.io/badge/Tests-40%20Passed%20(153%20Assertions)-success?style=for-the-badge)](tests)
 
 Sistem aplikasi web internal pengajuan dan persetujuan izin kantor untuk **General Solusindo** dan **Tabinaco**. Dirancang khusus sebagai pengganti Google Forms dengan arsitektur formulir dinamis satu pintu, validasi otomatis berbasis jam kerja kantor (WIB), *single-step approval*, proteksi konkurensi atomic row-lock, notifikasi multi-kanal (Notifikasi Telegram Instan ke HRD/Admin, Email Konfirmasi, & WhatsApp Click-to-Chat), pelaporan statistik, serta ekspor CSV teroptimasi spreadsheet.
 
@@ -407,11 +407,15 @@ Aplikasi memiliki rangkaian uji otomatis komprehensif menggunakan PHPUnit dengan
 php artisan test
 ```
 
-### Cakupan Pengujian (39 Tests / 147 Assertions):
+### Isolasi Notifikasi Eksternal
+
+Environment PHPUnit memakai kredensial Telegram dummy dan HTTP client yang di-*fake* secara global. Semua request ke `https://api.telegram.org/*` ditangkap di dalam proses test, sementara request HTTP yang tidak secara eksplisit di-*fake* akan gagal. Dengan demikian, menjalankan `php artisan test` tidak pernah mengirim notifikasi ke grup Telegram production. Test Telegram tetap dapat mengganti respons fake untuk menguji skenario sukses, error API, dan kegagalan koneksi.
+
+### Cakupan Pengujian (40 Tests / 153 Assertions):
 - **Otentikasi & Keamanan Akses**: Uji login admin/hrd, proteksi kredensial tidak valid, pembatasan middleware role antar dashboard, proteksi logout, dan rute tamu.
 - **Validasi 5 Jenis Izin**: Uji alur pengajuan lengkap untuk izin terlambat (aturan 07.00 WIB & emergency), izin setengah hari (durasi jam & minimal H-1), cuti (minimal H-7), **izin darurat** (aturan batas 08.00 WIB hari H & penolakan tipe lama `personal`), dan izin sakit (aturan jam 08.30 WIB & kewajiban surat dokter > 1 hari).
 - **Validasi Standarisasi Jabatan**: Uji penerimaan seluruh 12 opsi allow-list jabatan dan penolakan nilai input jabatan di luar daftar.
-- **Notifikasi Telegram**: Uji trigger pengiriman post-commit, proteksi data jika pengiriman gagal (tanpa rollback DB), sanitasi karakter HTML/anti-leak, dan proteksi anti-duplikasi saat refresh halaman sukses.
+- **Notifikasi Telegram**: Uji trigger pengiriman post-commit melalui HTTP fake, proteksi data jika pengiriman gagal (tanpa rollback DB), sanitasi karakter HTML/anti-leak, dan proteksi anti-duplikasi saat refresh halaman sukses.
 - **Alur Persetujuan & Konkurensi**: Uji aksi approval dengan catatan, penolakan dengan alasan wajib, row-level lock concurrency, dan pembentukan URL WhatsApp Click-to-Chat.
 - **Pelacakan Status Publik**: Uji verifikasi nomor pengajuan + email dan sanitasi respon data.
 - **Sistem Laporan & CSV**: Uji query statistik filter tanggal dan integritas format file streaming CSV.

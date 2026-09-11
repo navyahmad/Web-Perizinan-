@@ -7,6 +7,7 @@ use App\Services\LeaveRequestService;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
@@ -50,6 +51,9 @@ class LeaveRequestSubmissionTest extends TestCase
 
         $leave = LeaveRequest::first();
         $this->assertMatchesRegularExpression('/^IZN-2026-\d{6}$/', $leave->request_number);
+        $this->assertSame('sent', $leave->telegram_status);
+        Http::assertSentCount(1);
+        Http::assertSent(fn ($request): bool => $request->url() === 'https://api.telegram.org/bottesting_telegram_bot_token/sendMessage');
         $response->assertRedirect(route('public.success', $leave->request_number));
     }
 

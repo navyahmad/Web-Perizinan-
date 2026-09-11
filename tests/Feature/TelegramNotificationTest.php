@@ -23,9 +23,7 @@ class TelegramNotificationTest extends TestCase
         Config::set('telegram.chat_id', '-1001234567890');
         Config::set('app.url', 'https://izin.generalsolusindo.com');
 
-        Http::fake([
-            'https://api.telegram.org/*' => Http::response(['ok' => true, 'result' => ['message_id' => 999]], 200),
-        ]);
+        $this->fakeTelegramResponse(Http::response(['ok' => true, 'result' => ['message_id' => 999]], 200));
 
         $response = $this->post('/ajukan-izin', [
             'name' => 'Budi Santoso',
@@ -71,9 +69,7 @@ class TelegramNotificationTest extends TestCase
         Config::set('telegram.chat_id', '-1001234567890');
 
         // Simulate Telegram API 500 error
-        Http::fake([
-            'https://api.telegram.org/*' => Http::response(['ok' => false, 'description' => 'Unauthorized / Bad Request'], 400),
-        ]);
+        $this->fakeTelegramResponse(Http::response(['ok' => false, 'description' => 'Unauthorized / Bad Request'], 400));
 
         $response = $this->post('/ajukan-izin', [
             'name' => 'Siti Aminah',
@@ -108,11 +104,9 @@ class TelegramNotificationTest extends TestCase
         Config::set('telegram.chat_id', '-1001234567890');
 
         // Simulate network timeout or exception
-        Http::fake([
-            'https://api.telegram.org/*' => function () {
-                throw new ConnectionException('Connection timeout');
-            },
-        ]);
+        $this->fakeTelegramResponse(function () {
+            throw new ConnectionException('Connection timeout');
+        });
 
         $response = $this->post('/ajukan-izin', [
             'name' => 'Andi Wijaya',
@@ -143,9 +137,7 @@ class TelegramNotificationTest extends TestCase
         Config::set('telegram.bot_token', 'mock_token_123');
         Config::set('telegram.chat_id', '-1001234567890');
 
-        Http::fake([
-            'https://api.telegram.org/*' => Http::response(['ok' => true, 'result' => []], 200),
-        ]);
+        $this->fakeTelegramResponse(Http::response(['ok' => true, 'result' => []], 200));
 
         $this->post('/ajukan-izin', [
             'name' => 'Rina',
@@ -177,9 +169,7 @@ class TelegramNotificationTest extends TestCase
         Config::set('telegram.bot_token', 'mock_token_123');
         Config::set('telegram.chat_id', '-1001234567890');
 
-        Http::fake([
-            'https://api.telegram.org/*' => Http::response(['ok' => true, 'result' => []], 200),
-        ]);
+        $this->fakeTelegramResponse(Http::response(['ok' => true, 'result' => []], 200));
 
         $leave = LeaveRequest::create([
             'request_number' => 'IZN-2026-000099',
