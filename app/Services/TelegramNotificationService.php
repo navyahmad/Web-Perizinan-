@@ -42,28 +42,33 @@ class TelegramNotificationService
                 ."Status: 🟡 MENUNGGU PERSETUJUAN\n\n"
                 .'Silakan buka dashboard untuk melihat detail dan memproses pengajuan.';
 
-            // Production CTA link with APP_URL
+            // Production CTA link with APP_URL (Telegram only accepts https:// button URLs)
             $baseUrl = rtrim(config('app.url', 'http://localhost'), '/');
             $detailUrl = "{$baseUrl}/pengajuan/{$request->id}";
 
-            $keyboard = [
-                'inline_keyboard' => [
-                    [
-                        [
-                            'text' => 'Lihat Pengajuan',
-                            'url' => $detailUrl,
-                        ],
-                    ],
-                ],
-            ];
-
-            $response = Http::timeout(10)->post("https://api.telegram.org/bot{$botToken}/sendMessage", [
+            $payload = [
                 'chat_id' => $chatId,
                 'text' => $message,
                 'parse_mode' => 'HTML',
-                'reply_markup' => json_encode($keyboard, JSON_UNESCAPED_SLASHES),
                 'disable_web_page_preview' => true,
-            ]);
+            ];
+
+            if (str_starts_with($detailUrl, 'https://')) {
+                $keyboard = [
+                    'inline_keyboard' => [
+                        [
+                            [
+                                'text' => 'Lihat Pengajuan',
+                                'url' => $detailUrl,
+                            ],
+                        ],
+                    ],
+                ];
+
+                $payload['reply_markup'] = json_encode($keyboard, JSON_UNESCAPED_SLASHES);
+            }
+
+            $response = Http::timeout(10)->post("https://api.telegram.org/bot{$botToken}/sendMessage", $payload);
 
             if ($response->successful() && ($response->json('ok') === true)) {
                 $request->update([

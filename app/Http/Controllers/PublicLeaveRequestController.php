@@ -119,15 +119,22 @@ class PublicLeaveRequestController extends Controller
             ]);
         }
 
+        session()->put("leave_success_access.{$leaveRequest->request_number}", true);
+
         return redirect()->route('public.success', $leaveRequest->request_number)
             ->with('success', 'Pengajuan izin Anda berhasil dikirim.');
     }
 
     /**
      * Display the submission success page.
+     *
+     * Only viewable by the browser session that just submitted this request,
+     * since request numbers are sequential and must not be enumerable by outsiders.
      */
     public function success(string $requestNumber): View
     {
+        abort_unless(session("leave_success_access.{$requestNumber}"), 404);
+
         $leaveRequest = LeaveRequest::where('request_number', $requestNumber)->firstOrFail();
 
         return view('public.success', [
