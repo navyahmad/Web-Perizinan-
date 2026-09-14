@@ -58,18 +58,18 @@ Seluruh validasi waktu mengacu pada zona waktu resmi kantor: **WIB (`Asia/Jakart
 | **Izin Terlambat** | `late` | Wajib Hari H (`today`) | Normal: &le; 07.00 WIB | Lewat 07.00 WIB: **Wajib Darurat** + Alasan Darurat | Opsional |
 | **Izin Setengah Hari** | `half_day` | Minimal **H-1** (mulai besok) | - | - | Opsional |
 | **Cuti** | `leave` | Minimal **H-7** | - | - | Opsional |
-| **Izin Darurat** | `emergency` | Wajib Hari H (`today`) | Maksimal **08.00.00 WIB** | Tipe izin inheren darurat (*Alasan wajib*) | Opsional |
+| **Izin Darurat** | `emergency` | Wajib Hari H (`today`) | Maksimal **08.30.00 WIB** (lewat itu = Alpha) | Tipe izin inheren darurat (*Alasan wajib*) | Opsional |
 | **Izin Sakit** | `sick` | Hari H atau tanggal mendatang | Normal: < 08.30 WIB | Hari H &ge; 08.30 WIB: **Wajib Darurat** + Alasan Darurat | **Wajib** surat dokter jika > 1 hari |
 
 ### Detail Aturan Spesifik:
 1. **Izin Terlambat (`late`)**:
    - Hanya dapat diajukan untuk tanggal hari ini.
-   - Jam masuk kantor adalah **08.30 WIB**. Estimasi kedatangan maksimal yang diperbolehkan adalah **09.30 WIB**.
+   - Jam masuk kantor adalah **08.30 WIB**. Estimasi kedatangan maksimal yang diperbolehkan adalah **12.30 WIB** (keterlambatan &le; 4 jam, mengikuti batas durasi Izin Setengah Hari). Lebih dari itu wajib mengajukan Izin Setengah Hari.
    - Jika diajukan setelah pukul **07.00 WIB**, kolom `emergency` wajib dicentang dan `emergency_reason` wajib diisi.
    - Pernyataan persetujuan konsekuensi wajib disetujui.
 2. **Izin Setengah Hari (`half_day`)**:
    - Wajib diajukan minimal H-1 sebelum tanggal izin.
-   - Durasi dihitung secara otomatis dari `start_time` dan `end_time` (standar kerja sekitar ±4 jam). Jika durasi terpaut jauh (< 3 jam atau > 5 jam), formulir menampilkan peringatan tinjauan khusus.
+   - Durasi dihitung secara otomatis dari `start_time` dan `end_time`, maksimal **4 jam kerja**. Durasi kurang dari 4 jam tetap diperbolehkan; pengajuan ditolak validasi jika melebihi 4 jam.
    - Wajib memilih jenis: *Datang terlambat*, *Pulang lebih awal*, atau *Keluar kantor sementara*.
 3. **Cuti (`leave`)**:
    - Wajib diajukan minimal H-7 dari tanggal pengajuan untuk keperluan koordinasi delegasi pekerjaan.
@@ -77,7 +77,7 @@ Seluruh validasi waktu mengacu pada zona waktu resmi kantor: **WIB (`Asia/Jakart
 4. **Izin Darurat (`emergency`)**:
    - Menggantikan izin pribadi reguler.
    - **Hanya dapat diajukan untuk Hari H** (`today` Asia/Jakarta). Tidak ada pengajuan mundur maupun tanggal mendatang.
-   - **Batas waktu submit maksimal pukul 08.00.00 WIB**. Pengajuan pada `08:00:01` WIB ke atas otomatis ditolak oleh validasi server.
+   - **Batas waktu submit maksimal pukul 08.30.00 WIB** (jam kerja kantor mulai). Pengajuan pada `08:30:01` WIB ke atas otomatis ditolak oleh validasi server — ketidakhadiran dianggap **Alpha** dan tidak dapat dialihkan ke jenis izin lain.
    - Alasan kondisi darurat wajib diisi.
    - Tidak memerlukan checkbox darurat terpisah karena tipe izin ini secara inheren merupakan izin darurat.
 5. **Izin Sakit (`sick`)**:
@@ -389,10 +389,12 @@ Halaman `/laporan` menyediakan ringkasan analitik dan distribusi permohonan izin
 
 Database seeder secara otomatis menyediakan dua akun peninjau bawaan:
 
-| Role | Email Login | Password Default | Catatan Hak Akses |
-|---|---|---|---|
-| **Administrator** | `admin@example.com` | `password` | Akses penuh dashboard admin, seluruh pengajuan, approval & laporan |
-| **HRD** | `hrd@example.com` | `password` | Akses dashboard HRD, daftar pengajuan, approval & laporan |
+| Role | Username Login | Catatan Hak Akses |
+|---|---|---|
+| **Administrator** | `admin` | Akses penuh dashboard admin, seluruh pengajuan, approval & laporan |
+| **HRD** | `hrd` | Akses dashboard HRD, daftar pengajuan, approval & laporan |
+
+Password default diatur lewat environment variable `SEED_USER_PASSWORD` (lihat `.env`) dan sengaja tidak dituliskan di sini karena repository ini publik.
 
 > [!IMPORTANT]
 > Segera ganti password akun default sebelum melakukan deployment ke server produksi atau publik.

@@ -5,6 +5,7 @@
      x-data="{
         type: '{{ old('type', 'late') ?: 'late' }}',
         emergency: {{ old('emergency') ? 'true' : 'false' }},
+        estimatedArrival: '{{ old('estimated_arrival', '08:45') ?: '08:45' }}',
         startTime: '{{ old('start_time', '08:30') ?: '08:30' }}',
         endTime: '{{ old('end_time', '12:30') ?: '12:30' }}',
         sickDuration: {{ is_numeric(old('duration')) ? (float) old('duration') : 1 }},
@@ -23,17 +24,29 @@
             if (endMinutes <= startMinutes) return 0;
             return ((endMinutes - startMinutes) / 60).toFixed(1);
         },
-        
+
+        get calculatedLateHours() {
+            if (!this.estimatedArrival) return 0;
+            const [ah, am] = this.estimatedArrival.split(':').map(Number);
+            const arrivalMinutes = ah * 60 + am;
+            const officeStartMinutes = 8 * 60 + 30;
+            if (arrivalMinutes <= officeStartMinutes) return 0;
+            return ((arrivalMinutes - officeStartMinutes) / 60).toFixed(1);
+        },
+
         get isPast7Am() {
             return this.currentTime > '07:00';
         },
 
-        get isPast8Am() {
-            return this.currentTime > '08:00';
-        },
-
         get isPast830Am() {
             return this.currentTime >= '08:30';
+        },
+
+        get isSubmitBlocked() {
+            if (this.type === 'late' && this.calculatedLateHours > 4) return true;
+            if (this.type === 'half_day' && this.calculatedHalfDayHours > 4) return true;
+            if (this.type === 'emergency' && this.isPast830Am) return true;
+            return false;
         }
      }">
 
@@ -210,7 +223,7 @@
                             <li>Hanya berlaku untuk tanggal hari ini.</li>
                             <li>Batas pengajuan normal maksimal pukul <strong>07.00 WIB</strong>.</li>
                             <li>Setelah pukul 07.00 WIB hanya diizinkan untuk kondisi darurat.</li>
-                            <li>Estimasi kedatangan maksimal pukul <strong>09.30 WIB</strong>.</li>
+                            <li>Estimasi kedatangan maksimal pukul <strong>12.30 WIB</strong> (keterlambatan lebih dari 4 jam wajib mengajukan Izin Setengah Hari).</li>
                         </ul>
                     </div>
 
@@ -228,13 +241,18 @@
                             <label for="estimated_arrival" class="block text-sm font-medium text-slate-700 mb-1">
                                 Estimasi Jam Kedatangan <span class="text-rose-500">*</span>
                             </label>
-                            <input type="time" id="estimated_arrival" name="estimated_arrival" max="09:30"
-                                value="{{ old('estimated_arrival', '08:45') }}"
+                            <input type="time" id="estimated_arrival" name="estimated_arrival" max="12:30"
+                                x-model="estimatedArrival"
                                 :disabled="type !== 'late'" {{ old('type', 'late') !== 'late' ? 'disabled' : '' }}
                                 class="w-full rounded-lg border border-slate-300 px-3.5 py-2 text-slate-900 focus:ring-2 focus:ring-indigo-600 text-sm">
-                            <p class="text-xs text-slate-700 mt-1">Maksimal pukul 09.30 WIB.</p>
+                            <p class="text-xs text-slate-700 mt-1">Maksimal pukul 12.30 WIB (lebih dari itu wajib mengajukan Izin Setengah Hari).</p>
                             @error('estimated_arrival') <p class="text-xs text-rose-600 mt-1">{{ $message }}</p> @enderror
                         </div>
+                    </div>
+
+                    <div x-show="calculatedLateHours > 4"
+                         class="p-2.5 bg-rose-50 border border-rose-200 rounded-lg text-xs text-rose-800">
+                        ⚠️ <strong>Melebihi Batas:</strong> Keterlambatan (<span x-text="calculatedLateHours"></span> jam dari jam kerja 08.30 WIB) melebihi batas maksimal 4 jam. Silakan ajukan sebagai <strong>Izin Setengah Hari</strong>.
                     </div>
 
                     <!-- Emergency trigger if after 07.00 -->
@@ -285,7 +303,7 @@
                         <strong>Ketentuan Izin Setengah Hari:</strong>
                         <ul class="list-disc list-inside mt-1 space-y-0.5">
                             <li>Pengajuan minimal <strong>H-1</strong> (tanggal izin mulai besok).</li>
-                            <li>Ketidakhadiran sekitar <strong>4 jam kerja</strong> dari total jam kerja harian.</li>
+                            <li>Ketidakhadiran maksimal <strong>4 jam kerja</strong> dari total jam kerja harian.</li>
                         </ul>
                     </div>
 
@@ -342,9 +360,9 @@
                         <span class="font-bold text-sm text-indigo-700" x-text="calculatedHalfDayHours + ' Jam'"></span>
                     </div>
 
-                    <div x-show="calculatedHalfDayHours > 0 && (calculatedHalfDayHours < 3 || calculatedHalfDayHours > 5)"
-                         class="p-2.5 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-800">
-                        ⚠️ <strong>Peringatan Durasi:</strong> Durasi (<span x-text="calculatedHalfDayHours"></span> jam) terpaut jauh dari standar setengah hari kerja (±4 jam kerja). Pengajuan tetap dapat dikirim namun akan ditinjau oleh HRD/Admin.
+                    <div x-show="calculatedHalfDayHours > 4"
+                         class="p-2.5 bg-rose-50 border border-rose-200 rounded-lg text-xs text-rose-800">
+                        ⚠️ <strong>Durasi Melebihi Batas:</strong> Durasi (<span x-text="calculatedHalfDayHours"></span> jam) melebihi batas maksimal izin setengah hari (4 jam kerja). Silakan sesuaikan jam mulai/selesai.
                     </div>
 
                     <div>
@@ -408,16 +426,17 @@
                     <div class="bg-amber-50 border-l-4 border-amber-500 p-3 text-xs text-amber-900 rounded-r">
                         <strong>Ketentuan Izin Darurat:</strong>
                         <ul class="list-disc list-inside mt-1 space-y-0.5">
-                            <li>Izin Darurat hanya dapat diajukan pada hari yang sama dan maksimal pukul <strong>08.00 WIB</strong>.</li>
+                            <li>Izin Darurat hanya dapat diajukan pada hari yang sama dan maksimal pukul <strong>08.30 WIB</strong> (jam kerja kantor mulai).</li>
+                            <li>Lewat pukul 08.30 WIB, ketidakhadiran dianggap <strong>Alpha</strong> dan tidak dapat dialihkan atau diajukan sebagai jenis izin apa pun.</li>
                             <li>Tipe izin ini merepresentasikan kondisi darurat/mendesak tanpa perlu memilih opsi terpisah.</li>
                         </ul>
                     </div>
 
-                    <div x-show="isPast8Am" class="p-3 bg-rose-50 border border-rose-300 rounded-lg text-xs text-rose-900 flex items-center">
+                    <div x-show="isPast830Am" class="p-3 bg-rose-50 border border-rose-300 rounded-lg text-xs text-rose-900 flex items-center">
                         <svg class="w-5 h-5 text-rose-600 mr-2 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                         </svg>
-                        <span>Waktu saat ini telah melewati pukul 08.00 WIB. Pengajuan Izin Darurat akan ditolak oleh sistem.</span>
+                        <span>Waktu saat ini telah melewati pukul 08.30 WIB. Ketidakhadiran dianggap Alpha dan pengajuan izin apa pun untuk hari ini akan ditolak oleh sistem.</span>
                     </div>
 
                     <div>
@@ -581,13 +600,21 @@
             </div>
 
             <!-- Submit Button -->
+            <div x-show="isSubmitBlocked" class="p-3 bg-rose-50 border border-rose-300 rounded-lg text-xs text-rose-900 flex items-center">
+                <svg class="w-5 h-5 text-rose-600 mr-2 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                <span>Pengajuan tidak dapat dikirim karena melebihi batas waktu/durasi yang diizinkan untuk jenis izin ini. Silakan sesuaikan data di atas.</span>
+            </div>
+
             <div class="pt-4 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4">
                 <a href="{{ route('status.index') }}" class="text-sm font-medium text-slate-600 hover:text-indigo-600 order-2 sm:order-1">
                     &larr; Sudah pernah mengajukan? Cek status di sini
                 </a>
 
-                <button type="submit"
-                    class="w-full sm:w-auto inline-flex items-center justify-center px-8 py-3.5 border border-transparent rounded-xl shadow-md text-base font-semibold text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-indigo-600 transition order-1 sm:order-2 cursor-pointer">
+                <button type="submit" :disabled="isSubmitBlocked"
+                    :class="isSubmitBlocked ? 'opacity-50 cursor-not-allowed bg-slate-400 hover:bg-slate-400' : 'bg-indigo-600 hover:bg-indigo-700 cursor-pointer'"
+                    class="w-full sm:w-auto inline-flex items-center justify-center px-8 py-3.5 border border-transparent rounded-xl shadow-md text-base font-semibold text-white focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-indigo-600 transition order-1 sm:order-2">
                     <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                     </svg>

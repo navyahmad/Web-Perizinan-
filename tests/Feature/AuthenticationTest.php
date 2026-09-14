@@ -13,13 +13,13 @@ class AuthenticationTest extends TestCase
     public function test_admin_can_login(): void
     {
         $admin = User::factory()->create([
-            'email' => 'admin@example.com',
+            'username' => 'admin',
             'role' => 'admin',
             'password' => bcrypt('password'),
         ]);
 
         $response = $this->post('/login', [
-            'email' => 'admin@example.com',
+            'username' => 'admin',
             'password' => 'password',
         ]);
 
@@ -30,13 +30,13 @@ class AuthenticationTest extends TestCase
     public function test_hrd_can_login(): void
     {
         $hrd = User::factory()->create([
-            'email' => 'hrd@example.com',
+            'username' => 'hrd',
             'role' => 'hrd',
             'password' => bcrypt('password'),
         ]);
 
         $response = $this->post('/login', [
-            'email' => 'hrd@example.com',
+            'username' => 'hrd',
             'password' => 'password',
         ]);
 
@@ -47,17 +47,17 @@ class AuthenticationTest extends TestCase
     public function test_login_with_invalid_credentials_fails(): void
     {
         User::factory()->create([
-            'email' => 'admin@example.com',
+            'username' => 'admin',
             'password' => bcrypt('password'),
         ]);
 
         $response = $this->from('/login')->post('/login', [
-            'email' => 'admin@example.com',
+            'username' => 'admin',
             'password' => 'wrong-password',
         ]);
 
         $response->assertRedirect('/login');
-        $response->assertSessionHasErrors('email');
+        $response->assertSessionHasErrors('username');
         $this->assertGuest();
     }
 

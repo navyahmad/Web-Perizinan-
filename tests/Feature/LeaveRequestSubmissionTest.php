@@ -114,10 +114,32 @@ class LeaveRequestSubmissionTest extends TestCase
         $responseSuccess->assertSessionHasNoErrors();
     }
 
-    public function test_late_request_arrival_after_09_30_is_rejected(): void
+    public function test_late_request_arrival_within_4_hours_of_office_start_succeeds(): void
     {
         Carbon::setTestNow(Carbon::create(2026, 9, 8, 6, 30, 0, 'Asia/Jakarta'));
 
+        // 12:00 keterlambatan dari jam kerja 08.30 = 3.5 jam, masih dalam batas 4 jam.
+        $response = $this->post('/ajukan-izin', [
+            'name' => 'Charlie',
+            'email' => 'charlie@example.com',
+            'phone' => '081234567890',
+            'department' => 'General Solusindo',
+            'position' => 'Operasional',
+            'type' => 'late',
+            'leave_date' => '2026-09-08',
+            'estimated_arrival' => '12:00',
+            'reason' => 'Urusan keluarga',
+            'agreement' => '1',
+        ]);
+
+        $response->assertSessionHasNoErrors();
+    }
+
+    public function test_late_request_arrival_after_12_30_is_rejected(): void
+    {
+        Carbon::setTestNow(Carbon::create(2026, 9, 8, 6, 30, 0, 'Asia/Jakarta'));
+
+        // 13:00 keterlambatan dari jam kerja 08.30 = 4.5 jam, melebihi batas 4 jam.
         $response = $this->from('/ajukan-izin')->post('/ajukan-izin', [
             'name' => 'Charlie',
             'email' => 'charlie@example.com',
@@ -126,7 +148,7 @@ class LeaveRequestSubmissionTest extends TestCase
             'position' => 'Operasional',
             'type' => 'late',
             'leave_date' => '2026-09-08',
-            'estimated_arrival' => '09:45', // Melebihi 09.30
+            'estimated_arrival' => '13:00', // Melebihi 12.30 (>4 jam keterlambatan)
             'reason' => 'Urusan keluarga',
             'agreement' => '1',
         ]);
@@ -177,6 +199,52 @@ class LeaveRequestSubmissionTest extends TestCase
         ]);
     }
 
+    public function test_half_day_request_over_4_hours_fails(): void
+    {
+        Carbon::setTestNow(Carbon::create(2026, 9, 8, 10, 0, 0, 'Asia/Jakarta'));
+
+        $response = $this->from('/ajukan-izin')->post('/ajukan-izin', [
+            'name' => 'Diana',
+            'email' => 'diana@example.com',
+            'phone' => '081234567890',
+            'department' => 'General Solusindo',
+            'position' => 'Marketing',
+            'type' => 'half_day',
+            'leave_date' => '2026-09-09',
+            'half_day_type' => 'Pulang lebih awal',
+            'start_time' => '12:00',
+            'end_time' => '17:00',
+            'reason' => 'Acara keluarga',
+        ]);
+
+        $response->assertSessionHasErrors('end_time');
+    }
+
+    public function test_half_day_request_under_4_hours_succeeds(): void
+    {
+        Carbon::setTestNow(Carbon::create(2026, 9, 8, 10, 0, 0, 'Asia/Jakarta'));
+
+        $response = $this->post('/ajukan-izin', [
+            'name' => 'Diana',
+            'email' => 'diana@example.com',
+            'phone' => '081234567890',
+            'department' => 'General Solusindo',
+            'position' => 'Marketing',
+            'type' => 'half_day',
+            'leave_date' => '2026-09-09',
+            'half_day_type' => 'Pulang lebih awal',
+            'start_time' => '15:00',
+            'end_time' => '17:00',
+            'reason' => 'Acara keluarga',
+        ]);
+
+        $response->assertSessionHasNoErrors();
+        $this->assertDatabaseHas('leave_requests', [
+            'name' => 'Diana',
+            'duration' => 2.0,
+        ]);
+    }
+
     public function test_cuti_less_than_h_minus_7_fails(): void
     {
         Carbon::setTestNow(Carbon::create(2026, 9, 8, 10, 0, 0, 'Asia/Jakarta'));
@@ -212,7 +280,7 @@ class LeaveRequestSubmissionTest extends TestCase
         $responseSuccess->assertSessionHasNoErrors();
     }
 
-    public function test_emergency_leave_today_before_08_00_wib_succeeds(): void
+    public function test_emergency_leave_today_before_08_30_wib_succeeds(): void
     {
         Carbon::setTestNow(Carbon::create(2026, 9, 8, 7, 45, 0, 'Asia/Jakarta'));
 
@@ -236,9 +304,9 @@ class LeaveRequestSubmissionTest extends TestCase
         ]);
     }
 
-    public function test_emergency_leave_today_exactly_at_08_00_00_wib_succeeds(): void
+    public function test_emergency_leave_today_exactly_at_08_30_00_wib_succeeds(): void
     {
-        Carbon::setTestNow(Carbon::create(2026, 9, 8, 8, 0, 0, 'Asia/Jakarta'));
+        Carbon::setTestNow(Carbon::create(2026, 9, 8, 8, 30, 0, 'Asia/Jakarta'));
 
         $response = $this->post('/ajukan-izin', [
             'name' => 'Fani',
@@ -254,9 +322,9 @@ class LeaveRequestSubmissionTest extends TestCase
         $response->assertSessionHasNoErrors();
     }
 
-    public function test_emergency_leave_after_08_00_00_wib_is_rejected(): void
+    public function test_emergency_leave_after_08_30_00_wib_is_rejected(): void
     {
-        Carbon::setTestNow(Carbon::create(2026, 9, 8, 8, 0, 1, 'Asia/Jakarta'));
+        Carbon::setTestNow(Carbon::create(2026, 9, 8, 8, 30, 1, 'Asia/Jakarta'));
 
         $response = $this->from('/ajukan-izin')->post('/ajukan-izin', [
             'name' => 'Fani',

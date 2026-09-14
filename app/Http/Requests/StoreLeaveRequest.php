@@ -56,6 +56,10 @@ class StoreLeaveRequest extends FormRequest
             $emergency = filter_var($this->input('emergency'), FILTER_VALIDATE_BOOLEAN);
             $emergencyReason = trim((string) $this->input('emergency_reason'));
 
+            // Guards against Carbon::createFromFormat() throwing on malformed input;
+            // the `date_format:H:i` rule already flags an invalid value on its own.
+            $isValidTime = fn ($value): bool => (bool) preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', (string) $value);
+
             // Phone normalization check
             $phone = preg_replace('/[^\d]/', '', (string) $this->input('phone'));
             if (strlen($phone) < 8) {
@@ -71,8 +75,15 @@ class StoreLeaveRequest extends FormRequest
                 $arrival = $this->input('estimated_arrival');
                 if (empty($arrival)) {
                     $validator->errors()->add('estimated_arrival', 'Estimasi jam kedatangan wajib diisi.');
-                } elseif ($arrival > '09:30') {
-                    $validator->errors()->add('estimated_arrival', 'Estimasi kedatangan maksimal adalah pukul 09.30 WIB.');
+                } elseif ($isValidTime($arrival) && $arrival > '08:30') {
+                    // Jam kerja kantor dimulai pukul 08.30 WIB; keterlambatan mengikuti
+                    // batas durasi maksimal izin setengah hari (4 jam).
+                    $lateDurationHours = abs(Carbon::createFromFormat('H:i', $arrival)
+                        ->diffInMinutes(Carbon::createFromFormat('H:i', '08:30'))) / 60;
+
+                    if ($lateDurationHours > 4) {
+                        $validator->errors()->add('estimated_arrival', 'Estimasi kedatangan lebih dari pukul 12.30 WIB (keterlambatan lebih dari 4 jam). Silakan ajukan sebagai Izin Setengah Hari.');
+                    }
                 }
 
                 if (empty(trim((string) $this->input('reason')))) {
@@ -112,8 +123,17 @@ class StoreLeaveRequest extends FormRequest
                     $validator->errors()->add('end_time', 'Jam selesai izin wajib diisi.');
                 }
 
-                if ($startTime && $endTime && $endTime <= $startTime) {
-                    $validator->errors()->add('end_time', 'Jam selesai izin harus lebih besar daripada jam mulai.');
+                if ($startTime && $endTime && $isValidTime($startTime) && $isValidTime($endTime)) {
+                    if ($endTime <= $startTime) {
+                        $validator->errors()->add('end_time', 'Jam selesai izin harus lebih besar daripada jam mulai.');
+                    } else {
+                        $durationHours = abs(Carbon::createFromFormat('H:i', $endTime)
+                            ->diffInMinutes(Carbon::createFromFormat('H:i', $startTime))) / 60;
+
+                        if ($durationHours > 4) {
+                            $validator->errors()->add('end_time', 'Durasi izin setengah hari maksimal 4 jam.');
+                        }
+                    }
                 }
 
                 if (empty(trim((string) $this->input('reason')))) {
@@ -129,13 +149,14 @@ class StoreLeaveRequest extends FormRequest
                     $validator->errors()->add('reason', 'Alasan cuti wajib diisi.');
                 }
             } elseif ($type === 'emergency') {
-                // Izin Darurat (Hari H only, max 08:00:00 WIB)
+                // Izin Darurat (Hari H only, max 08:30:00 WIB — jam kerja kantor mulai).
+                // Lewat batas ini dianggap Alpha dan tidak dapat dialihkan ke jenis izin lain.
                 if ($leaveDate !== $today) {
                     $validator->errors()->add('leave_date', 'Izin darurat hanya dapat diajukan untuk tanggal hari ini.');
                 }
 
-                if ($now->format('H:i:s') > '08:00:00') {
-                    $validator->errors()->add('type', 'Pengajuan izin darurat maksimal diajukan pukul 08.00 WIB.');
+                if ($now->format('H:i:s') > '08:30:00') {
+                    $validator->errors()->add('type', 'Pengajuan izin darurat maksimal diajukan pukul 08.30 WIB. Lewat batas waktu ini, ketidakhadiran dianggap Alpha dan tidak dapat diajukan sebagai jenis izin apa pun.');
                 }
 
                 if (empty(trim((string) $this->input('reason')))) {
