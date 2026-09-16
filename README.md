@@ -64,7 +64,7 @@ Seluruh validasi waktu mengacu pada zona waktu resmi kantor: **WIB (`Asia/Jakart
 ### Detail Aturan Spesifik:
 1. **Izin Terlambat (`late`)**:
    - Hanya dapat diajukan untuk tanggal hari ini.
-   - Jam masuk kantor adalah **08.30 WIB**. Estimasi kedatangan maksimal yang diperbolehkan adalah **12.30 WIB** (keterlambatan &le; 4 jam, mengikuti batas durasi Izin Setengah Hari). Lebih dari itu wajib mengajukan Izin Setengah Hari.
+   - Jam masuk kantor adalah **08.30 WIB**. Estimasi kedatangan maksimal yang diperbolehkan adalah **09.30 WIB**.
    - Jika diajukan setelah pukul **07.00 WIB**, kolom `emergency` wajib dicentang dan `emergency_reason` wajib diisi.
    - Pernyataan persetujuan konsekuensi wajib disetujui.
 2. **Izin Setengah Hari (`half_day`)**:

@@ -25,15 +25,6 @@
             return ((endMinutes - startMinutes) / 60).toFixed(1);
         },
 
-        get calculatedLateHours() {
-            if (!this.estimatedArrival) return 0;
-            const [ah, am] = this.estimatedArrival.split(':').map(Number);
-            const arrivalMinutes = ah * 60 + am;
-            const officeStartMinutes = 8 * 60 + 30;
-            if (arrivalMinutes <= officeStartMinutes) return 0;
-            return ((arrivalMinutes - officeStartMinutes) / 60).toFixed(1);
-        },
-
         get isPast7Am() {
             return this.currentTime > '07:00';
         },
@@ -43,7 +34,7 @@
         },
 
         get isSubmitBlocked() {
-            if (this.type === 'late' && this.calculatedLateHours > 4) return true;
+            if (this.type === 'late' && this.estimatedArrival > '09:30') return true;
             if (this.type === 'half_day' && this.calculatedHalfDayHours > 4) return true;
             if (this.type === 'emergency' && this.isPast830Am) return true;
             return false;
@@ -223,7 +214,7 @@
                             <li>Hanya berlaku untuk tanggal hari ini.</li>
                             <li>Batas pengajuan normal maksimal pukul <strong>07.00 WIB</strong>.</li>
                             <li>Setelah pukul 07.00 WIB hanya diizinkan untuk kondisi darurat.</li>
-                            <li>Estimasi kedatangan maksimal pukul <strong>12.30 WIB</strong> (keterlambatan lebih dari 4 jam wajib mengajukan Izin Setengah Hari).</li>
+                            <li>Estimasi kedatangan maksimal pukul <strong>09.30 WIB</strong>.</li>
                         </ul>
                     </div>
 
@@ -241,18 +232,18 @@
                             <label for="estimated_arrival" class="block text-sm font-medium text-slate-700 mb-1">
                                 Estimasi Jam Kedatangan <span class="text-rose-500">*</span>
                             </label>
-                            <input type="time" id="estimated_arrival" name="estimated_arrival" max="12:30"
+                            <input type="time" id="estimated_arrival" name="estimated_arrival" max="09:30"
                                 x-model="estimatedArrival"
                                 :disabled="type !== 'late'" {{ old('type', 'late') !== 'late' ? 'disabled' : '' }}
                                 class="w-full rounded-lg border border-slate-300 px-3.5 py-2 text-slate-900 focus:ring-2 focus:ring-indigo-600 text-sm">
-                            <p class="text-xs text-slate-700 mt-1">Maksimal pukul 12.30 WIB (lebih dari itu wajib mengajukan Izin Setengah Hari).</p>
+                            <p class="text-xs text-slate-700 mt-1">Maksimal pukul 09.30 WIB.</p>
                             @error('estimated_arrival') <p class="text-xs text-rose-600 mt-1">{{ $message }}</p> @enderror
                         </div>
                     </div>
 
-                    <div x-show="calculatedLateHours > 4"
+                    <div x-show="estimatedArrival > '09:30'"
                          class="p-2.5 bg-rose-50 border border-rose-200 rounded-lg text-xs text-rose-800">
-                        ⚠️ <strong>Melebihi Batas:</strong> Keterlambatan (<span x-text="calculatedLateHours"></span> jam dari jam kerja 08.30 WIB) melebihi batas maksimal 4 jam. Silakan ajukan sebagai <strong>Izin Setengah Hari</strong>.
+                        ⚠️ <strong>Melebihi Batas:</strong> Estimasi kedatangan melebihi pukul 09.30 WIB. Pengajuan tidak dapat dikirim.
                     </div>
 
                     <!-- Emergency trigger if after 07.00 -->

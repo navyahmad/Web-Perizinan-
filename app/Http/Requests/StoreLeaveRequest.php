@@ -75,15 +75,8 @@ class StoreLeaveRequest extends FormRequest
                 $arrival = $this->input('estimated_arrival');
                 if (empty($arrival)) {
                     $validator->errors()->add('estimated_arrival', 'Estimasi jam kedatangan wajib diisi.');
-                } elseif ($isValidTime($arrival) && $arrival > '08:30') {
-                    // Jam kerja kantor dimulai pukul 08.30 WIB; keterlambatan mengikuti
-                    // batas durasi maksimal izin setengah hari (4 jam).
-                    $lateDurationHours = abs(Carbon::createFromFormat('H:i', $arrival)
-                        ->diffInMinutes(Carbon::createFromFormat('H:i', '08:30'))) / 60;
-
-                    if ($lateDurationHours > 4) {
-                        $validator->errors()->add('estimated_arrival', 'Estimasi kedatangan lebih dari pukul 12.30 WIB (keterlambatan lebih dari 4 jam). Silakan ajukan sebagai Izin Setengah Hari.');
-                    }
+                } elseif ($arrival > '09:30') {
+                    $validator->errors()->add('estimated_arrival', 'Estimasi kedatangan maksimal adalah pukul 09.30 WIB.');
                 }
 
                 if (empty(trim((string) $this->input('reason')))) {

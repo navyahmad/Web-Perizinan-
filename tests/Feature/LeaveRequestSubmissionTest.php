@@ -114,11 +114,10 @@ class LeaveRequestSubmissionTest extends TestCase
         $responseSuccess->assertSessionHasNoErrors();
     }
 
-    public function test_late_request_arrival_within_4_hours_of_office_start_succeeds(): void
+    public function test_late_request_arrival_at_09_30_succeeds(): void
     {
         Carbon::setTestNow(Carbon::create(2026, 9, 8, 6, 30, 0, 'Asia/Jakarta'));
 
-        // 12:00 keterlambatan dari jam kerja 08.30 = 3.5 jam, masih dalam batas 4 jam.
         $response = $this->post('/ajukan-izin', [
             'name' => 'Charlie',
             'email' => 'charlie@example.com',
@@ -127,7 +126,7 @@ class LeaveRequestSubmissionTest extends TestCase
             'position' => 'Operasional',
             'type' => 'late',
             'leave_date' => '2026-09-08',
-            'estimated_arrival' => '12:00',
+            'estimated_arrival' => '09:30',
             'reason' => 'Urusan keluarga',
             'agreement' => '1',
         ]);
@@ -135,11 +134,10 @@ class LeaveRequestSubmissionTest extends TestCase
         $response->assertSessionHasNoErrors();
     }
 
-    public function test_late_request_arrival_after_12_30_is_rejected(): void
+    public function test_late_request_arrival_after_09_30_is_rejected(): void
     {
         Carbon::setTestNow(Carbon::create(2026, 9, 8, 6, 30, 0, 'Asia/Jakarta'));
 
-        // 13:00 keterlambatan dari jam kerja 08.30 = 4.5 jam, melebihi batas 4 jam.
         $response = $this->from('/ajukan-izin')->post('/ajukan-izin', [
             'name' => 'Charlie',
             'email' => 'charlie@example.com',
@@ -148,7 +146,7 @@ class LeaveRequestSubmissionTest extends TestCase
             'position' => 'Operasional',
             'type' => 'late',
             'leave_date' => '2026-09-08',
-            'estimated_arrival' => '13:00', // Melebihi 12.30 (>4 jam keterlambatan)
+            'estimated_arrival' => '09:45', // Melebihi 09.30
             'reason' => 'Urusan keluarga',
             'agreement' => '1',
         ]);
