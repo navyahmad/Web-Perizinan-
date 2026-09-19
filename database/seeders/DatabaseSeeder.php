@@ -16,10 +16,10 @@ class DatabaseSeeder extends Seeder
         $defaultPassword = env('SEED_USER_PASSWORD', 'password');
 
         User::updateOrCreate(
-            ['username' => env('ADMIN_USERNAME', 'admin')],
+            ['username' => env('ADMIN_USERNAME', 'manager')],
             [
-                'name' => 'Administrator',
-                'email' => env('ADMIN_EMAIL', 'admin@example.com'),
+                'name' => 'Manager',
+                'email' => env('ADMIN_EMAIL', 'manager@example.com'),
                 'password' => Hash::make($defaultPassword),
                 'role' => 'admin',
                 'phone' => '081234567890',
