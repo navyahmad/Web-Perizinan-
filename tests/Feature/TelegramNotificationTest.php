@@ -21,7 +21,7 @@ class TelegramNotificationTest extends TestCase
 
         Config::set('telegram.bot_token', 'mock_token_123');
         Config::set('telegram.chat_id', '-1001234567890');
-        Config::set('app.url', 'https://izin.generalsolusindo.com');
+        Config::set('telegram.login_url', 'https://izin.delogic.net/login');
 
         $this->fakeTelegramResponse(Http::response(['ok' => true, 'result' => ['message_id' => 999]], 200));
 
@@ -58,7 +58,8 @@ class TelegramNotificationTest extends TestCase
         $this->assertStringContainsString('Budi Santoso', $sentData['text']);
         $this->assertStringContainsString('Teknisi', $sentData['text']);
         $this->assertStringContainsString('Izin Terlambat', $sentData['text']);
-        $this->assertStringContainsString("https://izin.generalsolusindo.com/pengajuan/{$leave->id}", $sentData['reply_markup']);
+        $this->assertStringContainsString('https://izin.delogic.net/login', $sentData['text']);
+        $this->assertStringContainsString('https://izin.delogic.net/login', $sentData['reply_markup']);
     }
 
     public function test_telegram_failure_does_not_rollback_leave_request(): void

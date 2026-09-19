@@ -40,11 +40,10 @@ class TelegramNotificationService
                 .'Jenis Izin: '.htmlspecialchars($request->type_label, ENT_QUOTES, 'UTF-8')."\n"
                 ."Tanggal Izin: {$leaveDateFormatted}\n"
                 ."Status: 🟡 MENUNGGU PERSETUJUAN\n\n"
-                .'Silakan buka dashboard untuk melihat detail dan memproses pengajuan.';
+                .'Silakan buka dashboard untuk melihat detail dan memproses pengajuan.'."\n"
+                .'Login Web: '.htmlspecialchars(config('telegram.login_url'), ENT_QUOTES, 'UTF-8');
 
-            // Production CTA link with APP_URL (Telegram only accepts https:// button URLs)
-            $baseUrl = rtrim(config('app.url', 'http://localhost'), '/');
-            $detailUrl = "{$baseUrl}/pengajuan/{$request->id}";
+            $loginUrl = config('telegram.login_url');
 
             $payload = [
                 'chat_id' => $chatId,
@@ -53,13 +52,13 @@ class TelegramNotificationService
                 'disable_web_page_preview' => true,
             ];
 
-            if (str_starts_with($detailUrl, 'https://')) {
+            if (str_starts_with($loginUrl, 'https://')) {
                 $keyboard = [
                     'inline_keyboard' => [
                         [
                             [
-                                'text' => 'Lihat Pengajuan',
-                                'url' => $detailUrl,
+                                'text' => 'Login Web Izin',
+                                'url' => $loginUrl,
                             ],
                         ],
                     ],
