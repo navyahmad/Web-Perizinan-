@@ -6,9 +6,9 @@
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
             <div class="flex items-center space-x-2">
-                <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Dashboard Admin</h1>
+                <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Dashboard Manager</h1>
                 <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-purple-100 text-purple-800 border border-purple-200">
-                    Administrator
+                    Manager
                 </span>
             </div>
             <p class="text-sm text-slate-700 mt-0.5">

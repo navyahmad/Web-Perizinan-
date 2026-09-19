@@ -121,7 +121,7 @@ class ReportController extends Controller
                 'Status Pengajuan',
                 'Diproses Oleh',
                 'Waktu Keputusan',
-                'Catatan Keputusan HRD/Admin',
+                'Catatan Keputusan HRD/Manager',
                 'Waktu Pengajuan Dibuat',
             ]);
 

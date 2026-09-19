@@ -33,7 +33,7 @@
                     @auth
                         @if(auth()->user()->isAdmin())
                             <a href="{{ route('admin.dashboard') }}" class="px-3 py-2 rounded-md text-sm font-medium transition {{ request()->routeIs('admin.dashboard') ? 'bg-indigo-50 text-indigo-700 font-semibold' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100' }}">
-                                Dashboard Admin
+                                Dashboard Manager
                             </a>
                         @else
                             <a href="{{ route('hrd.dashboard') }}" class="px-3 py-2 rounded-md text-sm font-medium transition {{ request()->routeIs('hrd.dashboard') ? 'bg-indigo-50 text-indigo-700 font-semibold' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100' }}">
@@ -72,7 +72,7 @@
                                 </span>
                                 <span>{{ auth()->user()->name }}</span>
                                 <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold {{ auth()->user()->isAdmin() ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800' }}">
-                                    {{ strtoupper(auth()->user()->role) }}
+                                    {{ auth()->user()->isAdmin() ? 'MANAGER' : 'HRD' }}
                                 </span>
                             </a>
                             <form method="POST" action="{{ route('logout') }}" class="inline">
@@ -110,7 +110,7 @@
         <div x-show="mobileMenuOpen" class="md:hidden border-b border-slate-200 bg-white px-4 pt-2 pb-4 space-y-1">
             @auth
                 @if(auth()->user()->isAdmin())
-                    <a href="{{ route('admin.dashboard') }}" class="block px-3 py-2 rounded-md text-base font-medium text-slate-700 hover:bg-slate-50">Dashboard Admin</a>
+                    <a href="{{ route('admin.dashboard') }}" class="block px-3 py-2 rounded-md text-base font-medium text-slate-700 hover:bg-slate-50">Dashboard Manager</a>
                 @else
                     <a href="{{ route('hrd.dashboard') }}" class="block px-3 py-2 rounded-md text-base font-medium text-slate-700 hover:bg-slate-50">Dashboard HRD</a>
                 @endif

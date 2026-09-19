@@ -24,7 +24,7 @@
             </svg>
             <div class="text-sm">
                 <span class="font-bold block">Pemberitahuan Kebijakan Kantor (Izin Sakit Tanpa Bukti Medis):</span>
-                <span>Pengajuan sakit tanpa bukti medis dapat diperhitungkan sebagai izin pribadi sesuai kebijakan perusahaan. Keputusan berada pada HRD/Admin saat memproses approval.</span>
+                    <span>Pengajuan sakit tanpa bukti medis dapat diperhitungkan sebagai izin pribadi sesuai kebijakan perusahaan. Keputusan berada pada HRD/Manager saat memproses approval.</span>
             </div>
         </div>
     @endif
@@ -86,7 +86,7 @@
                     <span class="font-semibold text-slate-700">Diproses oleh:</span>
                     <span class="font-bold text-slate-900">{{ $leaveRequest->processor->name ?? 'Petugas' }}</span>
                     <span class="px-2 py-0.5 rounded text-2xs font-bold uppercase {{ $leaveRequest->processor?->isAdmin() ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800' }}">
-                        {{ $leaveRequest->processor?->role ?? '-' }}
+                        {{ $leaveRequest->processor ? ($leaveRequest->processor->isAdmin() ? 'MANAGER' : 'HRD') : '-' }}
                     </span>
                     <span>pada</span>
                     <strong>{{ optional($leaveRequest->processed_at)->translatedFormat('d F Y, H:i') }} WIB</strong>

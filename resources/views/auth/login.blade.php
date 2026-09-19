@@ -9,7 +9,7 @@
             Login Staf Kantor
         </h2>
         <p class="mt-1 text-center text-sm text-slate-700">
-            Khusus Admin & HRD untuk persetujuan izin
+            Khusus Manager & HRD untuk persetujuan izin
         </p>
     </div>
 

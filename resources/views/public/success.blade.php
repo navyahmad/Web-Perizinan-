@@ -14,7 +14,7 @@
             Pengajuan Izin Berhasil Dikirim!
         </h1>
         <p class="text-sm text-slate-700 mt-2 max-w-md mx-auto">
-            Formulir perizinan Anda telah masuk ke sistem dan saat ini menunggu peninjauan dari tim HRD atau Admin.
+            Formulir perizinan Anda telah masuk ke sistem dan saat ini menunggu peninjauan dari tim HRD atau Manager.
         </p>
 
         <!-- Request Number Card -->

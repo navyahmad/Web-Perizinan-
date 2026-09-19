@@ -32,7 +32,7 @@
                 <div>
                     <dt class="text-xs font-semibold text-slate-700 uppercase">Peran / Otoritas</dt>
                     <dd class="mt-1 font-medium text-slate-900">
-                        {{ $user->isAdmin() ? 'Administrator (Role Tertinggi)' : 'Tim HRD (Approval Izin)' }}
+                        {{ $user->isAdmin() ? 'Manager (Role Tertinggi)' : 'Tim HRD (Approval Izin)' }}
                     </dd>
                 </div>
                 <div>

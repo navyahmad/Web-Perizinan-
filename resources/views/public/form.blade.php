@@ -59,7 +59,7 @@
             Pengajuan Izin Kantor
         </h1>
         <p class="text-xs sm:text-sm text-slate-600 mt-1 sm:mt-1.5 leading-relaxed">
-            Silakan lengkapi data di bawah ini. Pengajuan Anda akan ditinjau langsung oleh tim HRD atau Admin.
+            Silakan lengkapi data di bawah ini. Pengajuan Anda akan ditinjau langsung oleh tim HRD atau Manager.
         </p>
     </div>
 
@@ -282,7 +282,7 @@
                             <input type="checkbox" name="agreement" value="1" checked
                                 :disabled="type !== 'late'" {{ old('type', 'late') !== 'late' ? 'disabled' : '' }}
                                 class="h-4 w-4 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500 mt-0.5">
-                            <span class="ml-2 font-medium">Saya memahami pengajuan ini memerlukan persetujuan HRD atau Admin. <span class="text-rose-500">*</span></span>
+                            <span class="ml-2 font-medium">Saya memahami pengajuan ini memerlukan persetujuan HRD atau Manager. <span class="text-rose-500">*</span></span>
                         </label>
                         @error('agreement') <p class="text-xs text-rose-600 mt-1">{{ $message }}</p> @enderror
                     </div>
