@@ -18,7 +18,7 @@ class AdminDashboardController extends Controller
 
         $stats = [
             'total' => LeaveRequest::count(),
-            'pending' => LeaveRequest::where('status', 'pending')->count(),
+            'pending' => LeaveRequest::where('status', 'pending_manager')->count(),
             'approved' => LeaveRequest::where('status', 'approved')->count(),
             'rejected' => LeaveRequest::where('status', 'rejected')->count(),
             'today' => LeaveRequest::whereDate('created_at', $today)->count(),

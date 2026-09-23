@@ -32,6 +32,7 @@ class ReportController extends Controller
 
         $byStatus = [
             'pending' => (clone $query)->where('status', 'pending')->count(),
+            'pending_manager' => (clone $query)->where('status', 'pending_manager')->count(),
             'approved' => (clone $query)->where('status', 'approved')->count(),
             'rejected' => (clone $query)->where('status', 'rejected')->count(),
         ];
@@ -39,6 +40,8 @@ class ReportController extends Controller
         $byType = [
             'late' => (clone $query)->where('type', 'late')->count(),
             'half_day' => (clone $query)->where('type', 'half_day')->count(),
+            'early_departure' => (clone $query)->where('type', 'early_departure')->count(),
+            'temporary_exit' => (clone $query)->where('type', 'temporary_exit')->count(),
             'leave' => (clone $query)->where('type', 'leave')->count(),
             'emergency' => (clone $query)->whereIn('type', ['emergency', 'personal'])->count(),
             'sick' => (clone $query)->where('type', 'sick')->count(),
@@ -75,7 +78,7 @@ class ReportController extends Controller
         $startDate = $request->input('start_date');
         $endDate = $request->input('end_date');
 
-        $query = LeaveRequest::with(['processor', 'attachments']);
+        $query = LeaveRequest::with(['processor', 'hrdProcessor', 'attachments']);
 
         if ($startDate) {
             $query->whereDate('leave_date', '>=', $startDate);
@@ -123,6 +126,10 @@ class ReportController extends Controller
                 'Waktu Keputusan',
                 'Catatan Keputusan HRD/Manager',
                 'Waktu Pengajuan Dibuat',
+                'Keputusan HRD',
+                'Ditinjau HRD Oleh',
+                'Waktu Peninjauan HRD',
+                'Catatan HRD',
             ]);
 
             foreach ($records as $item) {
@@ -133,16 +140,18 @@ class ReportController extends Controller
                 $schedule = '-';
                 if ($item->type === 'late' && $item->estimated_arrival) {
                     $schedule = 'Estimasi Tiba '.$item->estimated_arrival.' WIB';
-                } elseif ($item->type === 'half_day') {
-                    $halfType = $item->half_day_type ?: 'Setengah Hari';
+                } elseif (in_array($item->type, ['half_day', 'temporary_exit'], true)) {
+                    $scheduleLabel = $item->half_day_type ?: $item->type_label;
                     $times = ($item->start_time && $item->end_time) ? " ({$item->start_time} - {$item->end_time} WIB)" : '';
-                    $schedule = $halfType.$times;
+                    $schedule = $scheduleLabel.$times;
+                } elseif ($item->type === 'early_departure') {
+                    $schedule = 'Pulang pukul '.$item->start_time.' WIB';
                 }
 
                 // Format duration with clear units
                 $duration = '-';
-                if ($item->type === 'half_day') {
-                    $duration = ($item->duration ?: 4).' Jam';
+                if (in_array($item->type, ['half_day', 'temporary_exit'], true)) {
+                    $duration = $item->duration !== null ? $item->duration.' Jam' : '-';
                 } elseif ($item->type === 'leave' || $item->type === 'sick') {
                     $duration = ($item->duration ?: 1).' Hari';
                 } elseif ($item->type === 'emergency' || $item->type === 'personal') {
@@ -166,7 +175,7 @@ class ReportController extends Controller
                 } elseif ($item->status === 'rejected') {
                     $decisionNote = '[Ditolak] '.($item->rejection_reason ?: '-');
                 } else {
-                    $decisionNote = '[Menunggu Persetujuan]';
+                    $decisionNote = '['.$item->status_label.']';
                 }
 
                 fputcsv($handle, [
@@ -188,6 +197,14 @@ class ReportController extends Controller
                     $item->processed_at ? Carbon::parse($item->processed_at)->format('d/m/Y H:i') : '-',
                     $decisionNote,
                     $item->created_at ? Carbon::parse($item->created_at)->format('d/m/Y H:i') : '-',
+                    match ($item->hrd_decision) {
+                        'approved' => 'Disetujui HRD',
+                        'rejected' => 'Ditolak HRD',
+                        default => '-',
+                    },
+                    $item->hrdProcessor?->name ?? '-',
+                    $item->hrd_processed_at?->timezone('Asia/Jakarta')->format('d/m/Y H:i') ?? '-',
+                    $item->hrd_note ?? '-',
                 ]);
             }
 

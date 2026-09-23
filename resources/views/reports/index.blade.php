@@ -84,9 +84,13 @@
                 <div class="flex justify-between items-center text-sm">
                     <span class="text-slate-600 flex items-center">
                         <span class="w-2.5 h-2.5 rounded-full bg-amber-500 mr-2"></span>
-                        Menunggu (Pending)
+                        Menunggu HRD
                     </span>
                     <span class="font-bold text-slate-900">{{ number_format($byStatus['pending']) }}</span>
+                </div>
+                <div class="flex justify-between items-center text-sm">
+                    <span class="text-slate-600">Menunggu Manager</span>
+                    <span class="font-bold text-slate-900">{{ number_format($byStatus['pending_manager']) }}</span>
                 </div>
                 <div class="flex justify-between items-center text-sm">
                     <span class="text-slate-600 flex items-center">
@@ -122,6 +126,14 @@
                 <div class="flex justify-between items-center text-sm">
                     <span class="text-slate-600">Izin Setengah Hari</span>
                     <span class="font-bold text-slate-900">{{ number_format($byType['half_day']) }}</span>
+                </div>
+                <div class="flex justify-between items-center text-sm">
+                    <span class="text-slate-600">Pulang Lebih Awal</span>
+                    <span class="font-bold text-slate-900">{{ number_format($byType['early_departure']) }}</span>
+                </div>
+                <div class="flex justify-between items-center text-sm">
+                    <span class="text-slate-600">Keluar Kantor Sebentar</span>
+                    <span class="font-bold text-slate-900">{{ number_format($byType['temporary_exit']) }}</span>
                 </div>
                 <div class="flex justify-between items-center text-sm">
                     <span class="text-slate-600">Cuti</span>
@@ -203,8 +215,8 @@
                                     {{ optional($req->leave_date)->format('d M Y') ?? '-' }}
                                 </td>
                                 <td class="px-5 py-4 text-slate-700">
-                                    @if($req->type === 'half_day')
-                                        {{ $req->duration ? $req->duration . ' Jam' : '4 Jam' }}
+                                    @if(in_array($req->type, ['half_day', 'temporary_exit'], true))
+                                        {{ $req->duration !== null ? $req->duration . ' Jam' : '-' }}
                                     @elseif($req->type === 'leave' || $req->type === 'sick')
                                         {{ $req->duration ? $req->duration . ' Hari' : '1 Hari' }}
                                     @elseif($req->type === 'emergency' || $req->type === 'personal')

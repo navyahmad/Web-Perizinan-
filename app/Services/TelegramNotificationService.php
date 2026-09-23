@@ -39,8 +39,8 @@ class TelegramNotificationService
                 .'Jabatan: '.htmlspecialchars($request->position, ENT_QUOTES, 'UTF-8')."\n"
                 .'Jenis Izin: '.htmlspecialchars($request->type_label, ENT_QUOTES, 'UTF-8')."\n"
                 ."Tanggal Izin: {$leaveDateFormatted}\n"
-                ."Status: 🟡 MENUNGGU PERSETUJUAN\n\n"
-                .'Silakan buka dashboard untuk melihat detail dan memproses pengajuan.'."\n"
+                ."Status: 🟡 MENUNGGU PERSETUJUAN HRD\n\n"
+                .'HRD meninjau terlebih dahulu. Setelah disetujui HRD, Manager memberikan keputusan final.'."\n"
                 .'Login Web: '.htmlspecialchars(config('telegram.login_url'), ENT_QUOTES, 'UTF-8');
 
             $loginUrl = config('telegram.login_url');

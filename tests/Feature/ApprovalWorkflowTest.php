@@ -2,7 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Mail\LeaveRequestApprovedMail;
 use App\Mail\LeaveRequestRejectedMail;
 use App\Models\LeaveRequest;
 use App\Models\User;
@@ -21,7 +20,7 @@ class ApprovalWorkflowTest extends TestCase
         Mail::fake();
     }
 
-    public function test_hrd_can_approve_pending_request_and_email_is_sent(): void
+    public function test_hrd_approval_waits_for_manager_without_sending_final_email(): void
     {
         $hrd = User::factory()->create(['role' => 'hrd']);
         $leave = LeaveRequest::create([
@@ -45,18 +44,18 @@ class ApprovalWorkflowTest extends TestCase
         $response->assertSessionHas('success');
 
         $leave->refresh();
-        $this->assertEquals('approved', $leave->status);
-        $this->assertEquals($hrd->id, $leave->processed_by);
-        $this->assertNotNull($leave->processed_at);
-        $this->assertEquals('Silakan, selamat berlibur.', $leave->approval_note);
-        $this->assertEquals('sent', $leave->email_status);
+        $this->assertEquals('pending_manager', $leave->status);
+        $this->assertEquals($hrd->id, $leave->hrd_processed_by);
+        $this->assertNotNull($leave->hrd_processed_at);
+        $this->assertEquals('Silakan, selamat berlibur.', $leave->hrd_note);
+        $this->assertNull($leave->processed_by);
+        $this->assertNull($leave->processed_at);
+        $this->assertEquals('pending', $leave->email_status);
 
-        Mail::assertSent(LeaveRequestApprovedMail::class, function ($mail) {
-            return $mail->hasTo('karyawan.a@example.com');
-        });
+        Mail::assertNothingSent();
     }
 
-    public function test_admin_can_approve_pending_request_directly(): void
+    public function test_manager_cannot_approve_before_hrd(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
         $leave = LeaveRequest::create([
@@ -73,10 +72,11 @@ class ApprovalWorkflowTest extends TestCase
 
         $response = $this->actingAs($admin)->post("/pengajuan/{$leave->id}/approve");
 
-        $response->assertSessionHas('success');
+        $response->assertForbidden();
         $leave->refresh();
-        $this->assertEquals('approved', $leave->status);
-        $this->assertEquals($admin->id, $leave->processed_by);
+        $this->assertEquals('pending', $leave->status);
+        $this->assertNull($leave->processed_by);
+        Mail::assertNothingSent();
     }
 
     public function test_hrd_can_reject_with_mandatory_reason(): void
@@ -170,6 +170,6 @@ class ApprovalWorkflowTest extends TestCase
         $this->assertStringStartsWith('https://wa.me/6281234567890?text=', $url);
         $this->assertStringContainsString('IZN-2026-000005', $message);
         $this->assertStringContainsString('DISETUJUI', $message);
-        $this->assertStringContainsString('ADMIN', $message);
+        $this->assertStringContainsString('MANAGER', $message);
     }
 }

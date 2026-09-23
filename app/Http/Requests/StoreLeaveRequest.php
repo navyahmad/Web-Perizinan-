@@ -25,16 +25,16 @@ class StoreLeaveRequest extends FormRequest
                 'required',
                 'in:Sales,Marketing,Finance,Operasional,Procurement,Teknisi,Internship,Admin Store,Content Creator,HR,Digital Merketing,SI Officer',
             ],
-            'type' => ['required', 'in:late,half_day,leave,emergency,sick'],
+            'type' => ['required', 'in:late,half_day,early_departure,temporary_exit,leave,emergency,sick'],
             'leave_date' => ['required', 'date_format:Y-m-d'],
             'reason' => ['nullable', 'string', 'max:2000'],
             'emergency' => ['nullable', 'boolean'],
             'emergency_reason' => ['nullable', 'string', 'max:1000'],
             'contactable' => ['nullable'],
-            'estimated_arrival' => ['nullable', 'date_format:H:i'],
-            'start_time' => ['nullable', 'date_format:H:i'],
-            'end_time' => ['nullable', 'date_format:H:i'],
-            'half_day_type' => ['nullable', 'in:Datang terlambat,Pulang lebih awal,Keluar kantor sementara'],
+            'estimated_arrival' => ['exclude_unless:type,late', 'nullable', 'date_format:H:i'],
+            'start_time' => ['exclude_unless:type,half_day,early_departure,temporary_exit', 'required', 'date_format:H:i'],
+            'end_time' => ['exclude_unless:type,half_day,temporary_exit', 'required', 'date_format:H:i', 'after:start_time'],
+            'half_day_type' => ['exclude'],
             'duration' => ['nullable', 'numeric', 'min:0.1', 'max:365'],
             'agreement' => ['nullable'],
             'attachments' => ['nullable', 'array'],
@@ -102,10 +102,6 @@ class StoreLeaveRequest extends FormRequest
                     $validator->errors()->add('leave_date', 'Pengajuan izin setengah hari minimal diajukan H-1.');
                 }
 
-                if (empty($this->input('half_day_type'))) {
-                    $validator->errors()->add('half_day_type', 'Jenis izin setengah hari wajib dipilih.');
-                }
-
                 $startTime = $this->input('start_time');
                 $endTime = $this->input('end_time');
 
@@ -131,6 +127,14 @@ class StoreLeaveRequest extends FormRequest
 
                 if (empty(trim((string) $this->input('reason')))) {
                     $validator->errors()->add('reason', 'Alasan izin setengah hari wajib diisi.');
+                }
+            } elseif (in_array($type, ['early_departure', 'temporary_exit'], true)) {
+                if ($leaveDate < $today) {
+                    $validator->errors()->add('leave_date', 'Tanggal izin tidak boleh sebelum hari ini.');
+                }
+
+                if (empty(trim((string) $this->input('reason')))) {
+                    $validator->errors()->add('reason', 'Alasan izin wajib diisi.');
                 }
             } elseif ($type === 'leave') {
                 // Cuti
@@ -198,6 +202,9 @@ class StoreLeaveRequest extends FormRequest
     public function messages(): array
     {
         return [
+            'start_time.required' => 'Jam pulang atau jam mulai izin wajib diisi.',
+            'end_time.required' => 'Jam selesai atau estimasi kembali wajib diisi.',
+            'end_time.after' => 'Jam selesai atau estimasi kembali harus setelah jam mulai.',
             'name.required' => 'Nama lengkap wajib diisi.',
             'email.required' => 'Alamat email pribadi wajib diisi.',
             'email.email' => 'Format email pribadi tidak valid.',

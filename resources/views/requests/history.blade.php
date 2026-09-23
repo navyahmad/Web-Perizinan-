@@ -34,7 +34,8 @@
                 <label class="block text-xs font-semibold text-slate-700 mb-1">Status</label>
                 <select name="status" class="w-full text-xs rounded-lg border border-slate-300 px-3 py-2 text-slate-900 bg-white">
                     <option value="">-- Semua Status --</option>
-                    <option value="pending" {{ request('status') === 'pending' ? 'selected' : '' }}>Menunggu Persetujuan</option>
+                    <option value="pending" {{ request('status') === 'pending' ? 'selected' : '' }}>Menunggu HRD</option>
+                    <option value="pending_manager" {{ request('status') === 'pending_manager' ? 'selected' : '' }}>Menunggu Manager</option>
                     <option value="approved" {{ request('status') === 'approved' ? 'selected' : '' }}>Disetujui</option>
                     <option value="rejected" {{ request('status') === 'rejected' ? 'selected' : '' }}>Ditolak</option>
                 </select>
@@ -46,6 +47,8 @@
                     <option value="">-- Semua Jenis --</option>
                     <option value="late" {{ request('type') === 'late' ? 'selected' : '' }}>Izin Terlambat</option>
                     <option value="half_day" {{ request('type') === 'half_day' ? 'selected' : '' }}>Izin Setengah Hari</option>
+                    <option value="early_departure" {{ request('type') === 'early_departure' ? 'selected' : '' }}>Izin Pulang Lebih Awal</option>
+                    <option value="temporary_exit" {{ request('type') === 'temporary_exit' ? 'selected' : '' }}>Izin Keluar Kantor Sebentar</option>
                     <option value="leave" {{ request('type') === 'leave' ? 'selected' : '' }}>Cuti</option>
                     <option value="emergency" {{ request('type') === 'emergency' ? 'selected' : '' }}>Izin Darurat</option>
                     <option value="sick" {{ request('type') === 'sick' ? 'selected' : '' }}>Izin Sakit</option>

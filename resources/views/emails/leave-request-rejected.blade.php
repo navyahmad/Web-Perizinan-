@@ -39,6 +39,12 @@
                     <td class="label">Tanggal Izin</td>
                     <td>{{ \Carbon\Carbon::parse($leaveRequest->leave_date)->translatedFormat('d F Y') }}</td>
                 </tr>
+                @if(in_array($leaveRequest->type, ['early_departure', 'temporary_exit'], true))
+                    <tr>
+                        <td class="label">{{ $leaveRequest->type === 'early_departure' ? 'Jam Rencana Pulang' : 'Jam Keluar / Kembali' }}</td>
+                        <td>{{ $leaveRequest->start_time }}{{ $leaveRequest->end_time ? ' - '.$leaveRequest->end_time : '' }} WIB</td>
+                    </tr>
+                @endif
                 <tr>
                     <td class="label">Diproses Oleh</td>
                     <td>{{ strtoupper($leaveRequest->processor->role ?? 'Petugas') }} ({{ $leaveRequest->processor->name ?? '-' }})</td>

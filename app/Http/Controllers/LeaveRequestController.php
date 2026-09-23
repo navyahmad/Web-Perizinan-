@@ -61,7 +61,7 @@ class LeaveRequestController extends Controller
      */
     public function show(int $id, WhatsAppMessageService $waService): View
     {
-        $leaveRequest = LeaveRequest::with(['processor', 'attachments'])->findOrFail($id);
+        $leaveRequest = LeaveRequest::with(['processor', 'hrdProcessor', 'attachments'])->findOrFail($id);
 
         $waUrl = null;
         if ($leaveRequest->isApproved()) {
@@ -82,11 +82,15 @@ class LeaveRequestController extends Controller
     }
 
     /**
-     * Approve a pending leave request (Single-Step, Atomic).
+     * Approve the current review stage atomically.
      */
     public function approve(Request $request, int $id, LeaveRequestService $service): RedirectResponse
     {
-        $note = $request->input('approval_note');
+        $validated = $request->validate([
+            'approval_note' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        $note = $validated['approval_note'] ?? null;
         $result = $service->approve($id, $request->user(), $note);
 
         if (! $result['success']) {
@@ -97,7 +101,7 @@ class LeaveRequestController extends Controller
     }
 
     /**
-     * Reject a pending leave request (Single-Step, Mandatory Reason).
+     * Reject the current review stage with a mandatory reason.
      */
     public function reject(Request $request, int $id, LeaveRequestService $service): RedirectResponse
     {

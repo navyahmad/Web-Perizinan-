@@ -45,14 +45,14 @@
 
             <!-- Approval/Rejection Actions or WhatsApp CTA -->
             <div class="flex flex-wrap items-center gap-2">
-                @if($leaveRequest->isPending())
+                @if($leaveRequest->canBeProcessedBy(auth()->user()))
                     <!-- Approve Button -->
                     <button type="button" @click="approveModalOpen = true"
                         class="inline-flex items-center px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold shadow-xs transition cursor-pointer">
                         <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
                         </svg>
-                        Setujui (Approve)
+                        {{ auth()->user()->isAdmin() ? 'Setujui Final' : 'Setujui & Teruskan ke Manager' }}
                     </button>
 
                     <!-- Reject Button -->
@@ -78,6 +78,22 @@
                 @endif
             </div>
         </div>
+
+        @if($leaveRequest->isPending())
+            <div class="p-4 bg-amber-50 border-b border-slate-100 text-sm text-slate-700">
+                {{ $leaveRequest->status === 'pending' ? 'Pengajuan harus ditinjau HRD terlebih dahulu.' : 'HRD sudah menyetujui. Pengajuan menunggu keputusan final Manager.' }}
+            </div>
+        @endif
+
+        @if($leaveRequest->hrd_decision)
+            <div class="p-4 bg-slate-50 border-b border-slate-100 text-sm text-slate-700 space-y-1">
+                <p class="font-semibold">Keputusan HRD: {{ $leaveRequest->hrd_decision === 'approved' ? 'Disetujui HRD' : 'Ditolak HRD' }}</p>
+                <p>{{ $leaveRequest->hrdProcessor?->name ?? 'Petugas' }} · {{ $leaveRequest->hrd_processed_at?->timezone('Asia/Jakarta')->translatedFormat('d F Y, H:i') }} WIB</p>
+                @if($leaveRequest->hrd_note)
+                    <p class="whitespace-pre-line">{{ $leaveRequest->hrd_note }}</p>
+                @endif
+            </div>
+        @endif
 
         <!-- Decision Info Banner (if approved/rejected) -->
         @if(! $leaveRequest->isPending())
@@ -166,18 +182,26 @@
                             <div>
                                 <span class="text-xs text-slate-700 block">Durasi</span>
                                 <span class="font-semibold text-slate-900">
-                                    {{ $leaveRequest->duration }} {{ $leaveRequest->type === 'half_day' ? 'Jam' : 'Hari' }}
+                                    {{ $leaveRequest->duration }} {{ in_array($leaveRequest->type, ['half_day', 'temporary_exit'], true) ? 'Jam' : 'Hari' }}
                                 </span>
                             </div>
                         @endif
-                        @if($leaveRequest->type === 'half_day')
-                            <div>
-                                <span class="text-xs text-slate-700 block">Sub-Jenis Setengah Hari</span>
-                                <span class="font-medium text-slate-900">{{ $leaveRequest->half_day_type }}</span>
-                            </div>
+                        @if(in_array($leaveRequest->type, ['half_day', 'temporary_exit'], true))
+                            @if($leaveRequest->half_day_type)
+                                <div>
+                                    <span class="text-xs text-slate-700 block">Sub-Jenis Setengah Hari (Riwayat)</span>
+                                    <span class="font-medium text-slate-900">{{ $leaveRequest->half_day_type }}</span>
+                                </div>
+                            @endif
                             <div>
                                 <span class="text-xs text-slate-700 block">Jam Mulai & Selesai</span>
                                 <span class="font-medium text-slate-900">{{ $leaveRequest->start_time }} - {{ $leaveRequest->end_time }} WIB</span>
+                            </div>
+                        @endif
+                        @if($leaveRequest->type === 'early_departure')
+                            <div>
+                                <span class="text-xs text-slate-700 block">Jam Rencana Pulang</span>
+                                <span class="font-medium text-slate-900">{{ $leaveRequest->start_time }} WIB</span>
                             </div>
                         @endif
                         @if($leaveRequest->type === 'late' && $leaveRequest->estimated_arrival)
@@ -274,6 +298,7 @@
     </div>
 
     <!-- MODAL 1: APPROVE CONFIRMATION -->
+    @if($leaveRequest->canBeProcessedBy(auth()->user()))
     <div x-show="approveModalOpen" class="fixed inset-0 z-50 overflow-y-auto" style="display: none;"
          x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
          x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0">
@@ -300,11 +325,14 @@
                             Apakah Anda yakin ingin menyetujui pengajuan <strong>{{ $leaveRequest->request_number }}</strong> atas nama <strong>{{ $leaveRequest->name }}</strong>?
                         </p>
 
+                        <p class="text-xs text-slate-600 text-center mt-2">
+                            {{ auth()->user()->isAdmin() ? 'Persetujuan ini menjadi keputusan final dan mengirim email kepada karyawan.' : 'Persetujuan HRD akan diteruskan ke Manager. Izin belum disetujui final.' }}
+                        </p>
                         <div class="mt-4">
                             <label for="approval_note" class="block text-xs font-semibold text-slate-700 mb-1">
                                 Catatan Persetujuan (Opsional)
                             </label>
-                            <textarea id="approval_note" name="approval_note" rows="2"
+                            <textarea id="approval_note" name="approval_note" rows="2" maxlength="1000"
                                 placeholder="Tambahkan catatan jika diperlukan..."
                                 class="w-full rounded-lg border border-slate-300 px-3 py-2 text-xs text-slate-900 focus:ring-2 focus:ring-emerald-600"></textarea>
                         </div>
@@ -317,7 +345,7 @@
                         </button>
                         <button type="submit"
                             class="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-xs font-semibold text-white shadow-xs transition cursor-pointer">
-                            Ya, Setujui Pengajuan
+                            {{ auth()->user()->isAdmin() ? 'Ya, Setujui Final' : 'Ya, Teruskan ke Manager' }}
                         </button>
                     </div>
                 </form>
@@ -376,5 +404,6 @@
             </div>
         </div>
     </div>
+    @endif
 </div>
 @endsection

@@ -38,7 +38,7 @@ class PublicLeaveRequestController extends Controller
         $type = $validated['type'];
         $duration = null;
 
-        if ($type === 'half_day' && ! empty($validated['start_time']) && ! empty($validated['end_time'])) {
+        if (in_array($type, ['half_day', 'temporary_exit'], true) && ! empty($validated['start_time']) && ! empty($validated['end_time'])) {
             $start = Carbon::createFromFormat('H:i', $validated['start_time']);
             $end = Carbon::createFromFormat('H:i', $validated['end_time']);
             $duration = round(abs($end->diffInMinutes($start)) / 60, 2);

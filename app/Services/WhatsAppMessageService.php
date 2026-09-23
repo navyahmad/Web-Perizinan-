@@ -40,8 +40,12 @@ class WhatsAppMessageService
     {
         $dateFormatted = Carbon::parse($request->leave_date)->translatedFormat('d F Y');
 
-        if ($request->type === 'half_day' && $request->start_time && $request->end_time) {
+        if (in_array($request->type, ['half_day', 'temporary_exit'], true) && $request->start_time && $request->end_time) {
             return "{$dateFormatted} ({$request->start_time} - {$request->end_time})";
+        }
+
+        if ($request->type === 'early_departure' && $request->start_time) {
+            return "{$dateFormatted} (Pulang: {$request->start_time} WIB)";
         }
 
         if ($request->type === 'late' && $request->estimated_arrival) {
@@ -62,7 +66,7 @@ class WhatsAppMessageService
     {
         $role = $request->processor?->role ?? 'Petugas';
 
-        return strtoupper($role);
+        return $role === 'admin' ? 'MANAGER' : strtoupper($role);
     }
 
     /**

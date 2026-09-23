@@ -45,102 +45,78 @@ class LeaveRequestService
     }
 
     /**
-     * Approve pending leave request (Atomic with Concurrency Row Lock)
-     *
      * @return array{success: bool, message: string, request?: LeaveRequest}
      */
     public function approve(int|LeaveRequest $leaveRequest, User $user, ?string $note = null): array
     {
-        $id = $leaveRequest instanceof LeaveRequest ? $leaveRequest->id : $leaveRequest;
-
-        $result = DB::transaction(function () use ($id, $user, $note) {
-            /** @var LeaveRequest|null $target */
-            $target = LeaveRequest::with('processor')->where('id', $id)->lockForUpdate()->first();
-
-            if (! $target) {
-                return ['success' => false, 'message' => 'Data pengajuan tidak ditemukan.'];
-            }
-
-            if ($target->status !== 'pending') {
-                $role = strtoupper($target->processor->role ?? 'Petugas');
-
-                return [
-                    'success' => false,
-                    'message' => "Pengajuan ini sudah diproses sebelumnya oleh {$role}.",
-                    'request' => $target,
-                ];
-            }
-
-            $target->status = 'approved';
-            $target->processed_by = $user->id;
-            $target->processed_at = now();
-            $target->approval_note = $note;
-            $target->save();
-
-            return [
-                'success' => true,
-                'message' => "Pengajuan {$target->request_number} berhasil disetujui.",
-                'request' => $target,
-            ];
-        });
-
-        if ($result['success'] && isset($result['request'])) {
-            $this->dispatchNotificationEmail($result['request'], 'approved');
-        }
-
-        return $result;
+        return $this->processDecision($leaveRequest, $user, 'approved', $note);
     }
 
     /**
-     * Reject pending leave request (Atomic with Concurrency Row Lock & Mandatory Reason)
-     *
      * @return array{success: bool, message: string, request?: LeaveRequest}
      */
     public function reject(int|LeaveRequest $leaveRequest, User $user, string $reason): array
     {
-        $id = $leaveRequest instanceof LeaveRequest ? $leaveRequest->id : $leaveRequest;
-
-        $cleanReason = trim($reason);
-        if (empty($cleanReason)) {
-            return [
-                'success' => false,
-                'message' => 'Alasan penolakan wajib diisi.',
-            ];
+        if (trim($reason) === '') {
+            return ['success' => false, 'message' => 'Alasan penolakan wajib diisi.'];
         }
 
-        $result = DB::transaction(function () use ($id, $user, $cleanReason) {
-            /** @var LeaveRequest|null $target */
-            $target = LeaveRequest::with('processor')->where('id', $id)->lockForUpdate()->first();
+        return $this->processDecision($leaveRequest, $user, 'rejected', $reason);
+    }
+
+    /**
+     * Validate the review stage while holding the row lock, then record one decision.
+     *
+     * @return array{success: bool, message: string, request?: LeaveRequest}
+     */
+    private function processDecision(int|LeaveRequest $leaveRequest, User $user, string $decision, ?string $note): array
+    {
+        $id = $leaveRequest instanceof LeaveRequest ? $leaveRequest->id : $leaveRequest;
+        $note = $note !== null ? trim($note) : null;
+
+        $result = DB::transaction(function () use ($id, $user, $decision, $note): array {
+            $target = LeaveRequest::whereKey($id)->lockForUpdate()->first();
 
             if (! $target) {
                 return ['success' => false, 'message' => 'Data pengajuan tidak ditemukan.'];
             }
 
-            if ($target->status !== 'pending') {
-                $role = strtoupper($target->processor->role ?? 'Petugas');
-
-                return [
-                    'success' => false,
-                    'message' => "Pengajuan ini sudah diproses sebelumnya oleh {$role}.",
-                    'request' => $target,
-                ];
+            if (! $target->isPending()) {
+                return ['success' => false, 'message' => 'Pengajuan ini sudah memiliki keputusan final.'];
             }
 
-            $target->status = 'rejected';
-            $target->rejection_reason = $cleanReason;
-            $target->processed_by = $user->id;
-            $target->processed_at = now();
+            abort_unless($target->canBeProcessedBy($user), 403, 'Anda tidak berwenang memproses pengajuan pada tahap ini.');
+
+            $processedAt = now();
+            $isHrdReview = $target->status === 'pending';
+
+            if ($isHrdReview) {
+                $target->hrd_processed_by = $user->id;
+                $target->hrd_processed_at = $processedAt;
+                $target->hrd_decision = $decision;
+                $target->hrd_note = $note;
+            }
+
+            if ($isHrdReview && $decision === 'approved') {
+                $target->status = 'pending_manager';
+                $message = "Pengajuan {$target->request_number} disetujui HRD dan menunggu persetujuan Manager.";
+            } else {
+                $target->status = $decision;
+                $target->processed_by = $user->id;
+                $target->processed_at = $processedAt;
+                $target->approval_note = $decision === 'approved' ? $note : null;
+                $target->rejection_reason = $decision === 'rejected' ? $note : null;
+                $label = $decision === 'approved' ? 'disetujui' : 'ditolak';
+                $message = "Pengajuan {$target->request_number} berhasil {$label}.";
+            }
+
             $target->save();
 
-            return [
-                'success' => true,
-                'message' => "Pengajuan {$target->request_number} berhasil ditolak.",
-                'request' => $target,
-            ];
+            return ['success' => true, 'message' => $message, 'request' => $target];
         });
 
-        if ($result['success'] && isset($result['request'])) {
-            $this->dispatchNotificationEmail($result['request'], 'rejected');
+        if ($result['success'] && ! $result['request']->isPending()) {
+            $this->dispatchNotificationEmail($result['request'], $decision);
         }
 
         return $result;

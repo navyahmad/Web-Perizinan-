@@ -30,6 +30,10 @@ class LeaveRequest extends Model
         'emergency_reason',
         'contactable',
         'status',
+        'hrd_processed_by',
+        'hrd_processed_at',
+        'hrd_decision',
+        'hrd_note',
         'processed_by',
         'processed_at',
         'approval_note',
@@ -49,6 +53,7 @@ class LeaveRequest extends Model
             'emergency' => 'boolean',
             'contactable' => 'boolean',
             'duration' => 'float',
+            'hrd_processed_at' => 'datetime',
             'processed_at' => 'datetime',
             'email_sent_at' => 'datetime',
             'telegram_sent_at' => 'datetime',
@@ -60,6 +65,20 @@ class LeaveRequest extends Model
         return $this->belongsTo(User::class, 'processed_by');
     }
 
+    public function hrdProcessor(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'hrd_processed_by');
+    }
+
+    public function canBeProcessedBy(User $user): bool
+    {
+        return match ($this->status) {
+            'pending' => $user->role === 'hrd',
+            'pending_manager' => $user->role === 'admin' && $this->hrd_decision === 'approved',
+            default => false,
+        };
+    }
+
     public function attachments(): HasMany
     {
         return $this->hasMany(LeaveRequestAttachment::class);
@@ -67,7 +86,7 @@ class LeaveRequest extends Model
 
     public function isPending(): bool
     {
-        return $this->status === 'pending';
+        return in_array($this->status, ['pending', 'pending_manager'], true);
     }
 
     public function isApproved(): bool
@@ -85,6 +104,8 @@ class LeaveRequest extends Model
         return match ($this->type) {
             'late' => 'Izin Terlambat',
             'half_day' => 'Izin Setengah Hari',
+            'early_departure' => 'Izin Pulang Lebih Awal',
+            'temporary_exit' => 'Izin Keluar Kantor Sebentar',
             'leave' => 'Cuti',
             'emergency', 'personal' => 'Izin Darurat',
             'sick' => 'Izin Sakit',
@@ -95,7 +116,8 @@ class LeaveRequest extends Model
     public function getStatusLabelAttribute(): string
     {
         return match ($this->status) {
-            'pending' => 'Menunggu Persetujuan',
+            'pending' => 'Menunggu HRD',
+            'pending_manager' => 'Menunggu Manager',
             'approved' => 'Disetujui',
             'rejected' => 'Ditolak',
             default => ucfirst($this->status),
@@ -105,7 +127,7 @@ class LeaveRequest extends Model
     public function getStatusBadgeClasses(): string
     {
         return match ($this->status) {
-            'pending' => 'bg-amber-500 text-white font-bold shadow-2xs',
+            'pending', 'pending_manager' => 'bg-amber-500 text-white font-bold shadow-2xs',
             'approved' => 'bg-emerald-600 text-white font-bold shadow-2xs',
             'rejected' => 'bg-rose-600 text-white font-bold shadow-2xs',
             default => 'bg-slate-600 text-white font-bold',

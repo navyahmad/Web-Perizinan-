@@ -21,7 +21,7 @@
                 <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                Lihat Pending ({{ $stats['pending'] }})
+                Menunggu HRD ({{ $stats['pending'] }})
             </a>
         </div>
     </div>
@@ -39,7 +39,7 @@
 
         <!-- Pending -->
         <div class="bg-white p-5 rounded-xl border border-amber-200 shadow-2xs bg-amber-50/20">
-            <span class="text-xs font-semibold text-amber-700 uppercase tracking-wider block">Menunggu</span>
+            <span class="text-xs font-semibold text-amber-700 uppercase tracking-wider block">Menunggu HRD</span>
             <div class="mt-2 flex items-baseline justify-between">
                 <span class="text-2xl sm:text-3xl font-bold text-amber-600">{{ number_format($stats['pending']) }}</span>
                 <span class="text-xs text-amber-700 font-medium">Pending</span>
@@ -87,7 +87,8 @@
                 <div>
                     <select name="status" class="w-full text-xs rounded-lg border border-slate-300 px-3 py-2 text-slate-900 bg-white">
                         <option value="">-- Semua Status --</option>
-                        <option value="pending" {{ request('status') === 'pending' ? 'selected' : '' }}>Menunggu Persetujuan</option>
+                        <option value="pending" {{ request('status') === 'pending' ? 'selected' : '' }}>Menunggu HRD</option>
+                        <option value="pending_manager" {{ request('status') === 'pending_manager' ? 'selected' : '' }}>Menunggu Manager</option>
                         <option value="approved" {{ request('status') === 'approved' ? 'selected' : '' }}>Disetujui</option>
                         <option value="rejected" {{ request('status') === 'rejected' ? 'selected' : '' }}>Ditolak</option>
                     </select>
@@ -98,6 +99,8 @@
                         <option value="">-- Semua Jenis Izin --</option>
                         <option value="late" {{ request('type') === 'late' ? 'selected' : '' }}>Izin Terlambat</option>
                         <option value="half_day" {{ request('type') === 'half_day' ? 'selected' : '' }}>Izin Setengah Hari</option>
+                        <option value="early_departure" {{ request('type') === 'early_departure' ? 'selected' : '' }}>Izin Pulang Lebih Awal</option>
+                        <option value="temporary_exit" {{ request('type') === 'temporary_exit' ? 'selected' : '' }}>Izin Keluar Kantor Sebentar</option>
                         <option value="leave" {{ request('type') === 'leave' ? 'selected' : '' }}>Cuti</option>
                         <option value="personal" {{ request('type') === 'personal' ? 'selected' : '' }}>Izin Pribadi</option>
                         <option value="sick" {{ request('type') === 'sick' ? 'selected' : '' }}>Izin Sakit</option>

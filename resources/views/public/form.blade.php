@@ -59,7 +59,7 @@
             Pengajuan Izin Kantor
         </h1>
         <p class="text-xs sm:text-sm text-slate-600 mt-1 sm:mt-1.5 leading-relaxed">
-            Silakan lengkapi data di bawah ini. Pengajuan Anda akan ditinjau langsung oleh tim HRD atau Manager.
+            Silakan lengkapi data di bawah ini. Pengajuan Anda akan ditinjau oleh HRD terlebih dahulu, kemudian Manager untuk keputusan final.
         </p>
     </div>
 
@@ -191,6 +191,8 @@
                         class="w-full rounded-lg border-2 border-indigo-500 px-4 py-2.5 text-slate-900 font-semibold focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 text-sm bg-indigo-50/20">
                         <option value="late">Izin Terlambat</option>
                         <option value="half_day">Izin Setengah Hari</option>
+                        <option value="early_departure">Izin Pulang Lebih Awal</option>
+                        <option value="temporary_exit">Izin Keluar Kantor Sebentar</option>
                         <option value="leave">Cuti</option>
                         <option value="emergency">Izin Darurat</option>
                         <option value="sick">Izin Sakit</option>
@@ -282,7 +284,7 @@
                             <input type="checkbox" name="agreement" value="1" checked
                                 :disabled="type !== 'late'" {{ old('type', 'late') !== 'late' ? 'disabled' : '' }}
                                 class="h-4 w-4 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500 mt-0.5">
-                            <span class="ml-2 font-medium">Saya memahami pengajuan ini memerlukan persetujuan HRD atau Manager. <span class="text-rose-500">*</span></span>
+                            <span class="ml-2 font-medium">Saya memahami pengajuan ini memerlukan persetujuan HRD, kemudian Manager. <span class="text-rose-500">*</span></span>
                         </label>
                         @error('agreement') <p class="text-xs text-rose-600 mt-1">{{ $message }}</p> @enderror
                     </div>
@@ -294,7 +296,7 @@
                         <strong>Ketentuan Izin Setengah Hari:</strong>
                         <ul class="list-disc list-inside mt-1 space-y-0.5">
                             <li>Pengajuan minimal <strong>H-1</strong> (tanggal izin mulai besok).</li>
-                            <li>Ketidakhadiran maksimal <strong>4 jam kerja</strong> dari total jam kerja harian.</li>
+                            <li>Durasi izin maksimal <strong>4 jam</strong>.</li>
                         </ul>
                     </div>
 
@@ -308,20 +310,6 @@
                                 class="w-full rounded-lg border border-slate-300 px-3.5 py-2 text-slate-900 focus:ring-2 focus:ring-indigo-600 text-sm">
                             <p class="text-xs text-slate-700 mt-1">Minimal tanggal besok (H-1).</p>
                             @error('leave_date') <p class="text-xs text-rose-600 mt-1">{{ $message }}</p> @enderror
-                        </div>
-
-                        <div>
-                            <label class="block text-sm font-medium text-slate-700 mb-1">
-                                Jenis Izin Setengah Hari <span class="text-rose-500">*</span>
-                            </label>
-                            <select name="half_day_type"
-                                :disabled="type !== 'half_day'" {{ old('type', 'late') !== 'half_day' ? 'disabled' : '' }}
-                                class="w-full rounded-lg border border-slate-300 px-3.5 py-2 text-slate-900 focus:ring-2 focus:ring-indigo-600 text-sm bg-white">
-                                <option value="Datang terlambat" {{ old('half_day_type') == 'Datang terlambat' ? 'selected' : '' }}>Datang terlambat</option>
-                                <option value="Pulang lebih awal" {{ old('half_day_type') == 'Pulang lebih awal' ? 'selected' : '' }}>Pulang lebih awal</option>
-                                <option value="Keluar kantor sementara" {{ old('half_day_type') == 'Keluar kantor sementara' ? 'selected' : '' }}>Keluar kantor sementara</option>
-                            </select>
-                            @error('half_day_type') <p class="text-xs text-rose-600 mt-1">{{ $message }}</p> @enderror
                         </div>
 
                         <div>
@@ -366,6 +354,46 @@
                         @error('reason') <p class="text-xs text-rose-600 mt-1">{{ $message }}</p> @enderror
                     </div>
                 </div>
+
+                <!-- Pulang lebih awal dan keluar sementara -->
+                @foreach(['early_departure' => 'Izin Pulang Lebih Awal', 'temporary_exit' => 'Izin Keluar Kantor Sebentar'] as $leaveType => $leaveLabel)
+                    <div x-show="type === '{{ $leaveType }}'" class="space-y-4 bg-slate-50 p-5 rounded-xl border border-slate-200">
+                        <p class="text-sm text-slate-700">{{ $leaveLabel }} dapat diajukan untuk hari ini atau tanggal mendatang. Pengajuan ditinjau HRD, kemudian Manager.</p>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label for="date_{{ $leaveType }}" class="block text-sm font-medium text-slate-700 mb-1">Tanggal Izin <span class="text-rose-500">*</span></label>
+                                <input id="date_{{ $leaveType }}" type="date" name="leave_date" :min="todayDate" value="{{ old('leave_date', now('Asia/Jakarta')->toDateString()) }}"
+                                    :disabled="type !== '{{ $leaveType }}'" :required="type === '{{ $leaveType }}'" {{ old('type', 'late') !== $leaveType ? 'disabled' : '' }}
+                                    class="w-full rounded-lg border border-slate-300 px-3.5 py-2 text-slate-900 text-sm">
+                                @error('leave_date') <p class="text-xs text-rose-600 mt-1">{{ $message }}</p> @enderror
+                            </div>
+                            <div>
+                                <label for="start_{{ $leaveType }}" class="block text-sm font-medium text-slate-700 mb-1">{{ $leaveType === 'early_departure' ? 'Jam Rencana Pulang' : 'Jam Keluar' }} <span class="text-rose-500">*</span></label>
+                                <input id="start_{{ $leaveType }}" type="time" name="start_time" value="{{ old('start_time') }}"
+                                    :disabled="type !== '{{ $leaveType }}'" :required="type === '{{ $leaveType }}'" {{ old('type', 'late') !== $leaveType ? 'disabled' : '' }}
+                                    class="w-full rounded-lg border border-slate-300 px-3.5 py-2 text-slate-900 text-sm">
+                                @error('start_time') <p class="text-xs text-rose-600 mt-1">{{ $message }}</p> @enderror
+                            </div>
+                            @if($leaveType === 'temporary_exit')
+                                <div>
+                                    <label for="return_time" class="block text-sm font-medium text-slate-700 mb-1">Estimasi Jam Kembali <span class="text-rose-500">*</span></label>
+                                    <input id="return_time" type="time" name="end_time" value="{{ old('end_time') }}"
+                                        :disabled="type !== 'temporary_exit'" :required="type === 'temporary_exit'" {{ old('type', 'late') !== 'temporary_exit' ? 'disabled' : '' }}
+                                        class="w-full rounded-lg border border-slate-300 px-3.5 py-2 text-slate-900 text-sm">
+                                    <p class="text-xs text-slate-700 mt-1">Waktu kembali pada tanggal yang sama, setelah jam keluar.</p>
+                                    @error('end_time') <p class="text-xs text-rose-600 mt-1">{{ $message }}</p> @enderror
+                                </div>
+                            @endif
+                        </div>
+                        <div>
+                            <label for="reason_{{ $leaveType }}" class="block text-sm font-medium text-slate-700 mb-1">Alasan {{ $leaveLabel }} <span class="text-rose-500">*</span></label>
+                            <textarea id="reason_{{ $leaveType }}" name="reason" rows="3" maxlength="2000"
+                                :disabled="type !== '{{ $leaveType }}'" :required="type === '{{ $leaveType }}'" {{ old('type', 'late') !== $leaveType ? 'disabled' : '' }}
+                                class="w-full rounded-lg border border-slate-300 px-3.5 py-2 text-slate-900 text-sm">{{ old('reason') }}</textarea>
+                            @error('reason') <p class="text-xs text-rose-600 mt-1">{{ $message }}</p> @enderror
+                        </div>
+                    </div>
+                @endforeach
 
                 <!-- 3.3 TYPE: LEAVE (Cuti) -->
                 <div x-show="type === 'leave'" class="space-y-4 bg-slate-50 p-5 rounded-xl border border-slate-200">
@@ -418,7 +446,7 @@
                         <strong>Ketentuan Izin Darurat:</strong>
                         <ul class="list-disc list-inside mt-1 space-y-0.5">
                             <li>Izin Darurat hanya dapat diajukan pada hari yang sama dan maksimal pukul <strong>08.30 WIB</strong> (jam kerja kantor mulai).</li>
-                            <li>Lewat pukul 08.30 WIB, ketidakhadiran dianggap <strong>Alpha</strong> dan tidak dapat dialihkan atau diajukan sebagai jenis izin apa pun.</li>
+                            <li>Lewat pukul 08.30 WIB, pengajuan jenis Izin Darurat tidak dapat dikirim.</li>
                             <li>Tipe izin ini merepresentasikan kondisi darurat/mendesak tanpa perlu memilih opsi terpisah.</li>
                         </ul>
                     </div>
@@ -427,7 +455,7 @@
                         <svg class="w-5 h-5 text-rose-600 mr-2 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                         </svg>
-                        <span>Waktu saat ini telah melewati pukul 08.30 WIB. Ketidakhadiran dianggap Alpha dan pengajuan izin apa pun untuk hari ini akan ditolak oleh sistem.</span>
+                        <span>Waktu saat ini telah melewati pukul 08.30 WIB. Pengajuan jenis Izin Darurat untuk hari ini sudah ditutup.</span>
                     </div>
 
                     <div>

@@ -38,10 +38,15 @@
                     <td class="label">Tanggal Izin</td>
                     <td>{{ \Carbon\Carbon::parse($leaveRequest->leave_date)->translatedFormat('d F Y') }}</td>
                 </tr>
-                @if($leaveRequest->type === 'half_day')
+                @if(in_array($leaveRequest->type, ['half_day', 'temporary_exit'], true))
                     <tr>
                         <td class="label">Waktu Izin</td>
                         <td>{{ $leaveRequest->start_time }} - {{ $leaveRequest->end_time }} ({{ $leaveRequest->duration }} Jam)</td>
+                    </tr>
+                @elseif($leaveRequest->type === 'early_departure')
+                    <tr>
+                        <td class="label">Jam Rencana Pulang</td>
+                        <td>{{ $leaveRequest->start_time }} WIB</td>
                     </tr>
                 @elseif($leaveRequest->type === 'late')
                     <tr>
