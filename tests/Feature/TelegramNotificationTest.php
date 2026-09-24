@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\LeaveRequest;
+use App\Models\User;
 use App\Services\TelegramNotificationService;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -197,5 +198,82 @@ class TelegramNotificationTest extends TestCase
                 && ! str_contains($text, 'password')
                 && ! str_contains($text, 'storage/app');
         });
+    }
+
+    public function test_hrd_approval_does_not_send_telegram_approval_notification(): void
+    {
+        Config::set('telegram.bot_token', 'mock_token_123');
+        Config::set('telegram.chat_id', '-1001234567890');
+        Config::set('telegram.login_url', 'https://izin.delogic.net/login');
+
+        $hrd = User::factory()->create(['role' => 'hrd']);
+        $leave = LeaveRequest::factory()->create(['status' => 'pending']);
+
+        $this->actingAs($hrd)->post(route('requests.approve', $leave->id), [
+            'approval_note' => 'Disetujui HRD',
+        ])->assertSessionHasNoErrors();
+
+        $leave->refresh();
+        $this->assertEquals('pending_manager', $leave->status);
+        Http::assertNothingSent();
+    }
+
+    public function test_final_manager_approval_sends_telegram_approval_notification(): void
+    {
+        Config::set('telegram.bot_token', 'mock_token_123');
+        Config::set('telegram.chat_id', '-1001234567890');
+        Config::set('telegram.login_url', 'https://izin.delogic.net/login');
+
+        $hrd = User::factory()->create(['role' => 'hrd', 'name' => 'Tim HRD']);
+        $manager = User::factory()->create(['role' => 'admin', 'name' => 'Manager Umum']);
+        $leave = LeaveRequest::factory()->create([
+            'status' => 'pending',
+            'name' => 'Budi Santoso',
+            'department' => 'General Solusindo',
+            'type' => 'leave',
+        ]);
+
+        $this->actingAs($hrd)->post(route('requests.approve', $leave->id), [
+            'approval_note' => 'Disetujui HRD',
+        ]);
+
+        Http::assertNothingSent();
+
+        $this->actingAs($manager)->post(route('requests.approve', $leave->id), [
+            'approval_note' => 'Disetujui Manager',
+        ])->assertSessionHasNoErrors();
+
+        $leave->refresh();
+        $this->assertEquals('approved', $leave->status);
+
+        Http::assertSentCount(1);
+
+        $recorded = Http::recorded();
+        $sentData = $recorded[0][0]->data();
+
+        $this->assertEquals('-1001234567890', $sentData['chat_id']);
+        $this->assertStringContainsString($leave->request_number, $sentData['text']);
+        $this->assertStringContainsString('Budi Santoso', $sentData['text']);
+        $this->assertStringContainsString('Tim HRD', $sentData['text']);
+        $this->assertStringContainsString('Manager Umum', $sentData['text']);
+        $this->assertStringContainsString('DISETUJUI', $sentData['text']);
+        $this->assertStringContainsString('https://izin.delogic.net/login', $sentData['text']);
+    }
+
+    public function test_rejection_does_not_send_telegram_approval_notification(): void
+    {
+        Config::set('telegram.bot_token', 'mock_token_123');
+        Config::set('telegram.chat_id', '-1001234567890');
+
+        $hrd = User::factory()->create(['role' => 'hrd']);
+        $leave = LeaveRequest::factory()->create(['status' => 'pending']);
+
+        $this->actingAs($hrd)->post(route('requests.reject', $leave->id), [
+            'rejection_reason' => 'Tidak memenuhi syarat',
+        ])->assertSessionHasNoErrors();
+
+        $leave->refresh();
+        $this->assertEquals('rejected', $leave->status);
+        Http::assertNothingSent();
     }
 }

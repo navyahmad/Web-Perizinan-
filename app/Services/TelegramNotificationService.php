@@ -101,4 +101,82 @@ class TelegramNotificationService
             return ['success' => false, 'message' => $e->getMessage()];
         }
     }
+
+    /**
+     * Send final-approval notification (approved by both HRD and Manager) to the
+     * configured HRD/Admin Telegram group.
+     *
+     * @return array{success: bool, message: string}
+     */
+    public function sendApprovedNotification(LeaveRequest $request): array
+    {
+        $botToken = config('telegram.bot_token');
+        $chatId = config('telegram.chat_id');
+
+        if (empty($botToken) || empty($chatId)) {
+            $msg = 'Telegram bot token atau chat ID belum dikonfigurasi.';
+            Log::warning("Gagal mengirim notifikasi persetujuan Telegram pengajuan {$request->request_number}: {$msg}");
+
+            return ['success' => false, 'message' => $msg];
+        }
+
+        try {
+            $leaveDateFormatted = Carbon::parse($request->leave_date)->format('d/m/Y');
+            $hrdName = $request->hrdProcessor->name ?? '-';
+            $managerName = $request->processor->name ?? '-';
+
+            $message = "✅ <b>PENGAJUAN IZIN DISETUJUI</b>\n\n"
+                .'No. Pengajuan: <b>'.htmlspecialchars($request->request_number, ENT_QUOTES, 'UTF-8')."</b>\n"
+                .'Nama: '.htmlspecialchars($request->name, ENT_QUOTES, 'UTF-8')."\n"
+                .'Departemen: '.htmlspecialchars($request->department, ENT_QUOTES, 'UTF-8')."\n"
+                .'Jenis Izin: '.htmlspecialchars($request->type_label, ENT_QUOTES, 'UTF-8')."\n"
+                ."Tanggal Izin: {$leaveDateFormatted}\n"
+                .'Disetujui HRD: '.htmlspecialchars($hrdName, ENT_QUOTES, 'UTF-8')."\n"
+                .'Disetujui Manager: '.htmlspecialchars($managerName, ENT_QUOTES, 'UTF-8')."\n"
+                ."Status: ✅ DISETUJUI (Final)\n\n"
+                .'Pengajuan ini telah disetujui sepenuhnya oleh HRD dan Manager. Karyawan dapat melihat status di halaman Cek Status.'."\n"
+                .'Login Web: '.htmlspecialchars(config('telegram.login_url'), ENT_QUOTES, 'UTF-8');
+
+            $loginUrl = config('telegram.login_url');
+
+            $payload = [
+                'chat_id' => $chatId,
+                'text' => $message,
+                'parse_mode' => 'HTML',
+                'disable_web_page_preview' => true,
+            ];
+
+            if (str_starts_with($loginUrl, 'https://')) {
+                $keyboard = [
+                    'inline_keyboard' => [
+                        [
+                            [
+                                'text' => 'Login Web Izin',
+                                'url' => $loginUrl,
+                            ],
+                        ],
+                    ],
+                ];
+
+                $payload['reply_markup'] = json_encode($keyboard, JSON_UNESCAPED_SLASHES);
+            }
+
+            $response = Http::timeout(10)->post("https://api.telegram.org/bot{$botToken}/sendMessage", $payload);
+
+            if ($response->successful() && ($response->json('ok') === true)) {
+                return ['success' => true, 'message' => 'Notifikasi persetujuan Telegram berhasil dikirim.'];
+            }
+
+            $errorMsg = 'Telegram API Error: '.($response->json('description') ?: $response->body());
+            Log::warning("Gagal mengirim notifikasi persetujuan Telegram pengajuan {$request->request_number}: {$errorMsg}");
+
+            return ['success' => false, 'message' => $errorMsg];
+        } catch (\Throwable $e) {
+            Log::error("Exception saat mengirim notifikasi persetujuan Telegram pengajuan {$request->request_number}: ".$e->getMessage(), [
+                'exception' => $e,
+            ]);
+
+            return ['success' => false, 'message' => $e->getMessage()];
+        }
+    }
 }

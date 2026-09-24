@@ -13,6 +13,8 @@ use Illuminate\Support\Facades\Mail;
 
 class LeaveRequestService
 {
+    public function __construct(protected TelegramNotificationService $telegramService) {}
+
     /**
      * Generate unique sequential request number: IZN-YYYY-XXXXXX
      */
@@ -117,9 +119,28 @@ class LeaveRequestService
 
         if ($result['success'] && ! $result['request']->isPending()) {
             $this->dispatchNotificationEmail($result['request'], $decision);
+
+            if ($decision === 'approved') {
+                $this->dispatchApprovedTelegramNotification($result['request']);
+            }
         }
 
         return $result;
+    }
+
+    /**
+     * Safely dispatch the final-approval Telegram notification without breaking the
+     * approval state if the Telegram API is unreachable or misconfigured.
+     */
+    protected function dispatchApprovedTelegramNotification(LeaveRequest $request): void
+    {
+        try {
+            $this->telegramService->sendApprovedNotification($request);
+        } catch (\Throwable $e) {
+            Log::error("Gagal mengirim notifikasi persetujuan Telegram untuk pengajuan {$request->request_number}: ".$e->getMessage(), [
+                'exception' => $e,
+            ]);
+        }
     }
 
     /**
