@@ -191,7 +191,6 @@
                         class="w-full rounded-lg border-2 border-indigo-500 px-4 py-2.5 text-slate-900 font-semibold focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 text-sm bg-indigo-50/20">
                         <option value="late">Izin Terlambat</option>
                         <option value="half_day">Izin Setengah Hari</option>
-                        <option value="early_departure">Izin Pulang Lebih Awal</option>
                         <option value="temporary_exit">Izin Keluar Kantor Sebentar</option>
                         <option value="leave">Cuti</option>
                         <option value="emergency">Izin Darurat</option>
@@ -355,45 +354,41 @@
                     </div>
                 </div>
 
-                <!-- Pulang lebih awal dan keluar sementara -->
-                @foreach(['early_departure' => 'Izin Pulang Lebih Awal', 'temporary_exit' => 'Izin Keluar Kantor Sebentar'] as $leaveType => $leaveLabel)
-                    <div x-show="type === '{{ $leaveType }}'" class="space-y-4 bg-slate-50 p-5 rounded-xl border border-slate-200">
-                        <p class="text-sm text-slate-700">{{ $leaveLabel }} dapat diajukan untuk hari ini atau tanggal mendatang. Pengajuan ditinjau HRD, kemudian Manager.</p>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div>
-                                <label for="date_{{ $leaveType }}" class="block text-sm font-medium text-slate-700 mb-1">Tanggal Izin <span class="text-rose-500">*</span></label>
-                                <input id="date_{{ $leaveType }}" type="date" name="leave_date" :min="todayDate" value="{{ old('leave_date', now('Asia/Jakarta')->toDateString()) }}"
-                                    :disabled="type !== '{{ $leaveType }}'" :required="type === '{{ $leaveType }}'" {{ old('type', 'late') !== $leaveType ? 'disabled' : '' }}
-                                    class="w-full rounded-lg border border-slate-300 px-3.5 py-2 text-slate-900 text-sm">
-                                @error('leave_date') <p class="text-xs text-rose-600 mt-1">{{ $message }}</p> @enderror
-                            </div>
-                            <div>
-                                <label for="start_{{ $leaveType }}" class="block text-sm font-medium text-slate-700 mb-1">{{ $leaveType === 'early_departure' ? 'Jam Rencana Pulang' : 'Jam Keluar' }} <span class="text-rose-500">*</span></label>
-                                <input id="start_{{ $leaveType }}" type="time" name="start_time" value="{{ old('start_time') }}"
-                                    :disabled="type !== '{{ $leaveType }}'" :required="type === '{{ $leaveType }}'" {{ old('type', 'late') !== $leaveType ? 'disabled' : '' }}
-                                    class="w-full rounded-lg border border-slate-300 px-3.5 py-2 text-slate-900 text-sm">
-                                @error('start_time') <p class="text-xs text-rose-600 mt-1">{{ $message }}</p> @enderror
-                            </div>
-                            @if($leaveType === 'temporary_exit')
-                                <div>
-                                    <label for="return_time" class="block text-sm font-medium text-slate-700 mb-1">Estimasi Jam Kembali <span class="text-rose-500">*</span></label>
-                                    <input id="return_time" type="time" name="end_time" value="{{ old('end_time') }}"
-                                        :disabled="type !== 'temporary_exit'" :required="type === 'temporary_exit'" {{ old('type', 'late') !== 'temporary_exit' ? 'disabled' : '' }}
-                                        class="w-full rounded-lg border border-slate-300 px-3.5 py-2 text-slate-900 text-sm">
-                                    <p class="text-xs text-slate-700 mt-1">Waktu kembali pada tanggal yang sama, setelah jam keluar.</p>
-                                    @error('end_time') <p class="text-xs text-rose-600 mt-1">{{ $message }}</p> @enderror
-                                </div>
-                            @endif
+                <!-- 3.5 TYPE: TEMPORARY EXIT (Izin Keluar Kantor Sebentar) -->
+                <div x-show="type === 'temporary_exit'" class="space-y-4 bg-slate-50 p-5 rounded-xl border border-slate-200">
+                    <p class="text-sm text-slate-700">Izin Keluar Kantor Sebentar dapat diajukan untuk hari ini atau tanggal mendatang. Pengajuan ditinjau HRD, kemudian Manager.</p>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label for="date_temporary_exit" class="block text-sm font-medium text-slate-700 mb-1">Tanggal Izin <span class="text-rose-500">*</span></label>
+                            <input id="date_temporary_exit" type="date" name="leave_date" :min="todayDate" value="{{ old('leave_date', now('Asia/Jakarta')->toDateString()) }}"
+                                :disabled="type !== 'temporary_exit'" :required="type === 'temporary_exit'" {{ old('type', 'late') !== 'temporary_exit' ? 'disabled' : '' }}
+                                class="w-full rounded-lg border border-slate-300 px-3.5 py-2 text-slate-900 text-sm">
+                            @error('leave_date') <p class="text-xs text-rose-600 mt-1">{{ $message }}</p> @enderror
                         </div>
                         <div>
-                            <label for="reason_{{ $leaveType }}" class="block text-sm font-medium text-slate-700 mb-1">Alasan {{ $leaveLabel }} <span class="text-rose-500">*</span></label>
-                            <textarea id="reason_{{ $leaveType }}" name="reason" rows="3" maxlength="2000"
-                                :disabled="type !== '{{ $leaveType }}'" :required="type === '{{ $leaveType }}'" {{ old('type', 'late') !== $leaveType ? 'disabled' : '' }}
-                                class="w-full rounded-lg border border-slate-300 px-3.5 py-2 text-slate-900 text-sm">{{ old('reason') }}</textarea>
-                            @error('reason') <p class="text-xs text-rose-600 mt-1">{{ $message }}</p> @enderror
+                            <label for="start_temporary_exit" class="block text-sm font-medium text-slate-700 mb-1">Jam Keluar <span class="text-rose-500">*</span></label>
+                            <input id="start_temporary_exit" type="time" name="start_time" value="{{ old('start_time') }}"
+                                :disabled="type !== 'temporary_exit'" :required="type === 'temporary_exit'" {{ old('type', 'late') !== 'temporary_exit' ? 'disabled' : '' }}
+                                class="w-full rounded-lg border border-slate-300 px-3.5 py-2 text-slate-900 text-sm">
+                            @error('start_time') <p class="text-xs text-rose-600 mt-1">{{ $message }}</p> @enderror
+                        </div>
+                        <div>
+                            <label for="return_time" class="block text-sm font-medium text-slate-700 mb-1">Estimasi Jam Kembali <span class="text-rose-500">*</span></label>
+                            <input id="return_time" type="time" name="end_time" value="{{ old('end_time') }}"
+                                :disabled="type !== 'temporary_exit'" :required="type === 'temporary_exit'" {{ old('type', 'late') !== 'temporary_exit' ? 'disabled' : '' }}
+                                class="w-full rounded-lg border border-slate-300 px-3.5 py-2 text-slate-900 text-sm">
+                            <p class="text-xs text-slate-700 mt-1">Waktu kembali pada tanggal yang sama, setelah jam keluar.</p>
+                            @error('end_time') <p class="text-xs text-rose-600 mt-1">{{ $message }}</p> @enderror
                         </div>
                     </div>
-                @endforeach
+                    <div>
+                        <label for="reason_temporary_exit" class="block text-sm font-medium text-slate-700 mb-1">Alasan Izin Keluar Kantor Sebentar <span class="text-rose-500">*</span></label>
+                        <textarea id="reason_temporary_exit" name="reason" rows="3" maxlength="2000"
+                            :disabled="type !== 'temporary_exit'" :required="type === 'temporary_exit'" {{ old('type', 'late') !== 'temporary_exit' ? 'disabled' : '' }}
+                            class="w-full rounded-lg border border-slate-300 px-3.5 py-2 text-slate-900 text-sm">{{ old('reason') }}</textarea>
+                        @error('reason') <p class="text-xs text-rose-600 mt-1">{{ $message }}</p> @enderror
+                    </div>
+                </div>
 
                 <!-- 3.3 TYPE: LEAVE (Cuti) -->
                 <div x-show="type === 'leave'" class="space-y-4 bg-slate-50 p-5 rounded-xl border border-slate-200">

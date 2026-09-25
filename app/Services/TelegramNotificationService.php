@@ -53,7 +53,7 @@ class TelegramNotificationService
     {
         $hrdName = $request->hrdProcessor->name ?? '-';
 
-        $message = "🟢 <b>DISETUJUI HRD</b> — MENUNGGU MANAGER\n\n"
+        $message = "🟡 <b>DISETUJUI HRD</b> — MENUNGGU MANAGER\n\n"
             .$this->formatRequestSummary($request)
             .'Disetujui HRD: '.htmlspecialchars($hrdName, ENT_QUOTES, 'UTF-8')."\n"
             ."Status: 🟡 MENUNGGU PERSETUJUAN MANAGER\n\n"
@@ -75,11 +75,11 @@ class TelegramNotificationService
         $hrdName = $request->hrdProcessor->name ?? '-';
         $managerName = $request->processor->name ?? '-';
 
-        $message = "✅ <b>PENGAJUAN IZIN DISETUJUI</b> (FINAL)\n\n"
+        $message = "🟢 <b>PENGAJUAN IZIN DISETUJUI</b> (FINAL)\n\n"
             .$this->formatRequestSummary($request)
             .'Disetujui HRD: '.htmlspecialchars($hrdName, ENT_QUOTES, 'UTF-8')."\n"
             .'Disetujui Manager: '.htmlspecialchars($managerName, ENT_QUOTES, 'UTF-8')."\n"
-            ."Status: ✅ DISETUJUI\n\n"
+            ."Status: 🟢 DISETUJUI\n\n"
             .'Silakan teruskan konfirmasi ke karyawan lewat tombol WhatsApp di bawah ini.';
 
         $waMessage = $this->waService->buildApprovedMessage($request);

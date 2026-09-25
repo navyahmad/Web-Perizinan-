@@ -25,14 +25,14 @@ class StoreLeaveRequest extends FormRequest
                 'required',
                 'in:Sales,Marketing,Finance,Operasional,Procurement,Teknisi,Internship,Admin Store,Content Creator,HR,Digital Merketing,SI Officer',
             ],
-            'type' => ['required', 'in:late,half_day,early_departure,temporary_exit,leave,emergency,sick'],
+            'type' => ['required', 'in:late,half_day,temporary_exit,leave,emergency,sick'],
             'leave_date' => ['required', 'date_format:Y-m-d'],
             'reason' => ['nullable', 'string', 'max:2000'],
             'emergency' => ['nullable', 'boolean'],
             'emergency_reason' => ['nullable', 'string', 'max:1000'],
             'contactable' => ['nullable'],
             'estimated_arrival' => ['exclude_unless:type,late', 'nullable', 'date_format:H:i'],
-            'start_time' => ['exclude_unless:type,half_day,early_departure,temporary_exit', 'required', 'date_format:H:i'],
+            'start_time' => ['exclude_unless:type,half_day,temporary_exit', 'required', 'date_format:H:i'],
             'end_time' => ['exclude_unless:type,half_day,temporary_exit', 'required', 'date_format:H:i', 'after:start_time'],
             'half_day_type' => ['exclude'],
             'duration' => ['nullable', 'numeric', 'min:0.1', 'max:365'],
@@ -128,7 +128,7 @@ class StoreLeaveRequest extends FormRequest
                 if (empty(trim((string) $this->input('reason')))) {
                     $validator->errors()->add('reason', 'Alasan izin setengah hari wajib diisi.');
                 }
-            } elseif (in_array($type, ['early_departure', 'temporary_exit'], true)) {
+            } elseif ($type === 'temporary_exit') {
                 if ($leaveDate < $today) {
                     $validator->errors()->add('leave_date', 'Tanggal izin tidak boleh sebelum hari ini.');
                 }

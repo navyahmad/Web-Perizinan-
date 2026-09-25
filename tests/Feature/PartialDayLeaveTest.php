@@ -18,36 +18,21 @@ class PartialDayLeaveTest extends TestCase
     public function test_new_types_are_top_level_options_without_the_half_day_dropdown(): void
     {
         $this->get(route('public.form'))->assertOk()
-            ->assertSee('value="early_departure"', false)
+            ->assertDontSee('value="early_departure"', false)
             ->assertSee('value="temporary_exit"', false)
-            ->assertSee('Jam Rencana Pulang')
             ->assertSee('Estimasi Jam Kembali')
             ->assertDontSee('name="half_day_type"', false);
     }
 
-    public function test_early_departure_accepts_same_day_and_future_dates_without_duration_limits(): void
+    public function test_early_departure_type_is_no_longer_accepted(): void
     {
-        $this->travelTo(now('Asia/Jakarta')->setTime(10, 0));
-        foreach ([today('Asia/Jakarta'), today('Asia/Jakarta')->addDay()] as $date) {
-            $this->post(route('public.store'), $this->payload('early_departure', [
-                'leave_date' => $date->toDateString(),
-                'start_time' => '11:00',
-                'end_time' => '20:00',
-                'duration' => 9,
-                'half_day_type' => 'Pulang lebih awal',
-            ]))->assertSessionHasNoErrors()->assertRedirect();
-        }
+        $this->post(route('public.store'), $this->payload('early_departure', [
+            'start_time' => '11:00',
+            'end_time' => '20:00',
+        ]))->assertSessionHasErrors('type');
 
-        $this->assertDatabaseCount('leave_requests', 2);
-        foreach (LeaveRequest::all() as $leave) {
-            $this->assertSame('early_departure', $leave->type);
-            $this->assertSame('11:00', substr($leave->start_time, 0, 5));
-            $this->assertNull($leave->end_time);
-            $this->assertNull($leave->duration);
-            $this->assertNull($leave->half_day_type);
-            $this->assertSame('pending', $leave->status);
-        }
-        Http::assertSentCount(2);
+        $this->assertDatabaseCount('leave_requests', 0);
+        Http::assertNothingSent();
     }
 
     public function test_temporary_exit_accepts_more_than_four_hours_and_calculates_duration(): void
@@ -65,19 +50,17 @@ class PartialDayLeaveTest extends TestCase
         Http::assertSentCount(1);
     }
 
-    public function test_new_types_require_date_time_and_reason_and_reject_past_dates(): void
+    public function test_temporary_exit_requires_date_time_and_reason_and_rejects_past_dates(): void
     {
-        foreach (['early_departure', 'temporary_exit'] as $type) {
-            foreach ([
-                ['leave_date' => today('Asia/Jakarta')->subDay()->toDateString()],
-                ['leave_date' => 'invalid'],
-                ['start_time' => null],
-                ['start_time' => '25:90'],
-                ['reason' => ''],
-            ] as $invalid) {
-                $this->post(route('public.store'), $this->payload($type, $invalid))
-                    ->assertSessionHasErrors(array_keys($invalid));
-            }
+        foreach ([
+            ['leave_date' => today('Asia/Jakarta')->subDay()->toDateString()],
+            ['leave_date' => 'invalid'],
+            ['start_time' => null],
+            ['start_time' => '25:90'],
+            ['reason' => ''],
+        ] as $invalid) {
+            $this->post(route('public.store'), $this->payload('temporary_exit', $invalid))
+                ->assertSessionHasErrors(array_keys($invalid));
         }
         $this->assertDatabaseCount('leave_requests', 0);
         Http::assertNothingSent();
