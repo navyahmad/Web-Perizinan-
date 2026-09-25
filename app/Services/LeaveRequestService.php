@@ -117,15 +117,36 @@ class LeaveRequestService
             return ['success' => true, 'message' => $message, 'request' => $target];
         });
 
-        if ($result['success'] && ! $result['request']->isPending()) {
-            $this->dispatchNotificationEmail($result['request'], $decision);
+        if ($result['success']) {
+            $updated = $result['request'];
 
-            if ($decision === 'approved') {
-                $this->dispatchApprovedTelegramNotification($result['request']);
+            if ($updated->status === 'pending_manager') {
+                $this->dispatchHrdApprovedTelegramNotification($updated);
+            } elseif (! $updated->isPending()) {
+                $this->dispatchNotificationEmail($updated, $decision);
+
+                if ($decision === 'approved') {
+                    $this->dispatchApprovedTelegramNotification($updated);
+                }
             }
         }
 
         return $result;
+    }
+
+    /**
+     * Safely dispatch the HRD-approval (stage 1) Telegram notification without
+     * breaking the approval state if the Telegram API is unreachable or misconfigured.
+     */
+    protected function dispatchHrdApprovedTelegramNotification(LeaveRequest $request): void
+    {
+        try {
+            $this->telegramService->sendHrdApprovedNotification($request);
+        } catch (\Throwable $e) {
+            Log::error("Gagal mengirim notifikasi persetujuan HRD Telegram untuk pengajuan {$request->request_number}: ".$e->getMessage(), [
+                'exception' => $e,
+            ]);
+        }
     }
 
     /**

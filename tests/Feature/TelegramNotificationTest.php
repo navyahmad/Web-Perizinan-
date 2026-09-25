@@ -186,7 +186,7 @@ class TelegramNotificationTest extends TestCase
             'status' => 'pending',
         ]);
 
-        $service = new TelegramNotificationService;
+        $service = app(TelegramNotificationService::class);
         $service->sendNewRequestNotification($leave);
 
         Http::assertSent(function ($request) {
@@ -200,14 +200,14 @@ class TelegramNotificationTest extends TestCase
         });
     }
 
-    public function test_hrd_approval_does_not_send_telegram_approval_notification(): void
+    public function test_hrd_approval_sends_informational_telegram_notification(): void
     {
         Config::set('telegram.bot_token', 'mock_token_123');
         Config::set('telegram.chat_id', '-1001234567890');
         Config::set('telegram.login_url', 'https://izin.delogic.net/login');
 
-        $hrd = User::factory()->create(['role' => 'hrd']);
-        $leave = LeaveRequest::factory()->create(['status' => 'pending']);
+        $hrd = User::factory()->create(['role' => 'hrd', 'name' => 'Tim HRD']);
+        $leave = LeaveRequest::factory()->create(['status' => 'pending', 'name' => 'Budi Santoso']);
 
         $this->actingAs($hrd)->post(route('requests.approve', $leave->id), [
             'approval_note' => 'Disetujui HRD',
@@ -215,10 +215,21 @@ class TelegramNotificationTest extends TestCase
 
         $leave->refresh();
         $this->assertEquals('pending_manager', $leave->status);
-        Http::assertNothingSent();
+
+        Http::assertSentCount(1);
+
+        $sentData = Http::recorded()[0][0]->data();
+        $this->assertEquals('-1001234567890', $sentData['chat_id']);
+        $this->assertStringContainsString($leave->request_number, $sentData['text']);
+        $this->assertStringContainsString('Budi Santoso', $sentData['text']);
+        $this->assertStringContainsString('Tim HRD', $sentData['text']);
+        $this->assertStringContainsString('MENUNGGU MANAGER', $sentData['text']);
+        $this->assertStringContainsString('https://izin.delogic.net/login', $sentData['text']);
+        // Login button, not a WhatsApp forward button, at this stage
+        $this->assertStringContainsString('Login Web Izin', $sentData['reply_markup']);
     }
 
-    public function test_final_manager_approval_sends_telegram_approval_notification(): void
+    public function test_final_manager_approval_sends_telegram_notification_with_whatsapp_button(): void
     {
         Config::set('telegram.bot_token', 'mock_token_123');
         Config::set('telegram.chat_id', '-1001234567890');
@@ -231,13 +242,14 @@ class TelegramNotificationTest extends TestCase
             'name' => 'Budi Santoso',
             'department' => 'General Solusindo',
             'type' => 'leave',
+            'phone' => '6281234567890',
         ]);
 
         $this->actingAs($hrd)->post(route('requests.approve', $leave->id), [
             'approval_note' => 'Disetujui HRD',
         ]);
 
-        Http::assertNothingSent();
+        Http::assertSentCount(1);
 
         $this->actingAs($manager)->post(route('requests.approve', $leave->id), [
             'approval_note' => 'Disetujui Manager',
@@ -246,10 +258,9 @@ class TelegramNotificationTest extends TestCase
         $leave->refresh();
         $this->assertEquals('approved', $leave->status);
 
-        Http::assertSentCount(1);
+        Http::assertSentCount(2);
 
-        $recorded = Http::recorded();
-        $sentData = $recorded[0][0]->data();
+        $sentData = Http::recorded()[1][0]->data();
 
         $this->assertEquals('-1001234567890', $sentData['chat_id']);
         $this->assertStringContainsString($leave->request_number, $sentData['text']);
@@ -257,7 +268,10 @@ class TelegramNotificationTest extends TestCase
         $this->assertStringContainsString('Tim HRD', $sentData['text']);
         $this->assertStringContainsString('Manager Umum', $sentData['text']);
         $this->assertStringContainsString('DISETUJUI', $sentData['text']);
-        $this->assertStringContainsString('https://izin.delogic.net/login', $sentData['text']);
+
+        // Forwards to the employee's WhatsApp with a pre-filled approval message
+        $this->assertStringContainsString('Kirim ke WhatsApp Karyawan', $sentData['reply_markup']);
+        $this->assertStringContainsString('https://wa.me/6281234567890', $sentData['reply_markup']);
     }
 
     public function test_rejection_does_not_send_telegram_approval_notification(): void
