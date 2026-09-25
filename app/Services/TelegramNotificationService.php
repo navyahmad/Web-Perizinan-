@@ -20,7 +20,7 @@ class TelegramNotificationService
     {
         $message = "🔔 <b>PENGAJUAN IZIN BARU</b>\n\n"
             .$this->formatRequestSummary($request)
-            ."Status: 🔴 MENUNGGU PERSETUJUAN HRD\n\n"
+            ."Status: 🔵 MENUNGGU PERSETUJUAN HRD\n\n"
             .'HRD meninjau terlebih dahulu. Setelah disetujui HRD, Manager memberikan keputusan final.'."\n"
             .'Login Web: '.htmlspecialchars(config('telegram.login_url'), ENT_QUOTES, 'UTF-8');
 
@@ -53,10 +53,10 @@ class TelegramNotificationService
     {
         $hrdName = $request->hrdProcessor->name ?? '-';
 
-        $message = "🔴 <b>DISETUJUI HRD</b> — MENUNGGU MANAGER\n\n"
+        $message = "🔵 <b>DISETUJUI HRD</b> — MENUNGGU MANAGER\n\n"
             .$this->formatRequestSummary($request)
             .'Disetujui HRD: '.htmlspecialchars($hrdName, ENT_QUOTES, 'UTF-8')."\n"
-            ."Status: 🔴 MENUNGGU PERSETUJUAN MANAGER\n\n"
+            ."Status: 🔵 MENUNGGU PERSETUJUAN MANAGER\n\n"
             .'Mohon Manager untuk meninjau dan memberikan keputusan final.'."\n"
             .'Login Web: '.htmlspecialchars(config('telegram.login_url'), ENT_QUOTES, 'UTF-8');
 
