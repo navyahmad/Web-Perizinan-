@@ -20,7 +20,7 @@ class TelegramNotificationService
     {
         $message = "🔔 <b>PENGAJUAN IZIN BARU</b>\n\n"
             .$this->formatRequestSummary($request)
-            ."Status: 🟡 MENUNGGU PERSETUJUAN HRD\n\n"
+            ."Status: 🔴 MENUNGGU PERSETUJUAN HRD\n\n"
             .'HRD meninjau terlebih dahulu. Setelah disetujui HRD, Manager memberikan keputusan final.'."\n"
             .'Login Web: '.htmlspecialchars(config('telegram.login_url'), ENT_QUOTES, 'UTF-8');
 
@@ -53,10 +53,10 @@ class TelegramNotificationService
     {
         $hrdName = $request->hrdProcessor->name ?? '-';
 
-        $message = "🟡 <b>DISETUJUI HRD</b> — MENUNGGU MANAGER\n\n"
+        $message = "🔴 <b>DISETUJUI HRD</b> — MENUNGGU MANAGER\n\n"
             .$this->formatRequestSummary($request)
             .'Disetujui HRD: '.htmlspecialchars($hrdName, ENT_QUOTES, 'UTF-8')."\n"
-            ."Status: 🟡 MENUNGGU PERSETUJUAN MANAGER\n\n"
+            ."Status: 🔴 MENUNGGU PERSETUJUAN MANAGER\n\n"
             .'Mohon Manager untuk meninjau dan memberikan keputusan final.'."\n"
             .'Login Web: '.htmlspecialchars(config('telegram.login_url'), ENT_QUOTES, 'UTF-8');
 
@@ -83,6 +83,33 @@ class TelegramNotificationService
             .'Silakan teruskan konfirmasi ke karyawan lewat tombol WhatsApp di bawah ini.';
 
         $waMessage = $this->waService->buildApprovedMessage($request);
+        $waUrl = $this->waService->buildUrl($request->phone, $waMessage);
+
+        return $this->sendMessage($message, $waUrl !== '' ? 'Kirim ke WhatsApp Karyawan' : null, $waUrl);
+    }
+
+    /**
+     * Send rejection notification to the configured HRD/Admin Telegram group, with a
+     * button that forwards the rejection to the employee's WhatsApp. Rejection can
+     * happen at either review stage (HRD or Manager), so the message names whoever
+     * made the final call.
+     *
+     * @return array{success: bool, message: string}
+     */
+    public function sendRejectedNotification(LeaveRequest $request): array
+    {
+        $processedByRole = $this->waService->formatProcessorRole($request);
+        $processedByName = $request->processor->name ?? '-';
+        $reason = $request->rejection_reason ?: 'Tidak memenuhi ketentuan kebijakan kantor.';
+
+        $message = "🔴 <b>PENGAJUAN IZIN DITOLAK</b>\n\n"
+            .$this->formatRequestSummary($request)
+            ."Ditolak oleh: {$processedByRole} (".htmlspecialchars($processedByName, ENT_QUOTES, 'UTF-8').")\n"
+            .'Alasan Penolakan: '.htmlspecialchars($reason, ENT_QUOTES, 'UTF-8')."\n"
+            ."Status: 🔴 DITOLAK\n\n"
+            .'Silakan teruskan informasi penolakan ke karyawan lewat tombol WhatsApp di bawah ini.';
+
+        $waMessage = $this->waService->buildRejectedMessage($request);
         $waUrl = $this->waService->buildUrl($request->phone, $waMessage);
 
         return $this->sendMessage($message, $waUrl !== '' ? 'Kirim ke WhatsApp Karyawan' : null, $waUrl);

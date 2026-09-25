@@ -127,6 +127,8 @@ class LeaveRequestService
 
                 if ($decision === 'approved') {
                     $this->dispatchApprovedTelegramNotification($updated);
+                } else {
+                    $this->dispatchRejectedTelegramNotification($updated);
                 }
             }
         }
@@ -159,6 +161,21 @@ class LeaveRequestService
             $this->telegramService->sendApprovedNotification($request);
         } catch (\Throwable $e) {
             Log::error("Gagal mengirim notifikasi persetujuan Telegram untuk pengajuan {$request->request_number}: ".$e->getMessage(), [
+                'exception' => $e,
+            ]);
+        }
+    }
+
+    /**
+     * Safely dispatch the rejection Telegram notification without breaking the
+     * rejection state if the Telegram API is unreachable or misconfigured.
+     */
+    protected function dispatchRejectedTelegramNotification(LeaveRequest $request): void
+    {
+        try {
+            $this->telegramService->sendRejectedNotification($request);
+        } catch (\Throwable $e) {
+            Log::error("Gagal mengirim notifikasi penolakan Telegram untuk pengajuan {$request->request_number}: ".$e->getMessage(), [
                 'exception' => $e,
             ]);
         }

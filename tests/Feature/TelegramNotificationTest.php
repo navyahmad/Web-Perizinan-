@@ -274,13 +274,17 @@ class TelegramNotificationTest extends TestCase
         $this->assertStringContainsString('https://wa.me/6281234567890', $sentData['reply_markup']);
     }
 
-    public function test_rejection_does_not_send_telegram_approval_notification(): void
+    public function test_hrd_rejection_sends_telegram_notification_naming_hrd_with_whatsapp_button(): void
     {
         Config::set('telegram.bot_token', 'mock_token_123');
         Config::set('telegram.chat_id', '-1001234567890');
 
-        $hrd = User::factory()->create(['role' => 'hrd']);
-        $leave = LeaveRequest::factory()->create(['status' => 'pending']);
+        $hrd = User::factory()->create(['role' => 'hrd', 'name' => 'Tim HRD']);
+        $leave = LeaveRequest::factory()->create([
+            'status' => 'pending',
+            'name' => 'Budi Santoso',
+            'phone' => '6281234567890',
+        ]);
 
         $this->actingAs($hrd)->post(route('requests.reject', $leave->id), [
             'rejection_reason' => 'Tidak memenuhi syarat',
@@ -288,6 +292,47 @@ class TelegramNotificationTest extends TestCase
 
         $leave->refresh();
         $this->assertEquals('rejected', $leave->status);
-        Http::assertNothingSent();
+
+        Http::assertSentCount(1);
+
+        $sentData = Http::recorded()[0][0]->data();
+        $this->assertEquals('-1001234567890', $sentData['chat_id']);
+        $this->assertStringContainsString($leave->request_number, $sentData['text']);
+        $this->assertStringContainsString('Budi Santoso', $sentData['text']);
+        $this->assertStringContainsString('Ditolak oleh: HRD (Tim HRD)', $sentData['text']);
+        $this->assertStringContainsString('Tidak memenuhi syarat', $sentData['text']);
+        $this->assertStringContainsString('DITOLAK', $sentData['text']);
+        $this->assertStringContainsString('Kirim ke WhatsApp Karyawan', $sentData['reply_markup']);
+        $this->assertStringContainsString('https://wa.me/6281234567890', $sentData['reply_markup']);
+    }
+
+    public function test_manager_rejection_after_hrd_approval_sends_telegram_notification_naming_manager(): void
+    {
+        Config::set('telegram.bot_token', 'mock_token_123');
+        Config::set('telegram.chat_id', '-1001234567890');
+
+        $hrd = User::factory()->create(['role' => 'hrd', 'name' => 'Tim HRD']);
+        $manager = User::factory()->create(['role' => 'admin', 'name' => 'Manager Umum']);
+        $leave = LeaveRequest::factory()->create(['status' => 'pending', 'phone' => '6281234567890']);
+
+        $this->actingAs($hrd)->post(route('requests.approve', $leave->id), [
+            'approval_note' => 'Disetujui HRD',
+        ]);
+
+        Http::assertSentCount(1);
+
+        $this->actingAs($manager)->post(route('requests.reject', $leave->id), [
+            'rejection_reason' => 'Kuota cuti tim penuh',
+        ])->assertSessionHasNoErrors();
+
+        $leave->refresh();
+        $this->assertEquals('rejected', $leave->status);
+
+        Http::assertSentCount(2);
+
+        $sentData = Http::recorded()[1][0]->data();
+        $this->assertStringContainsString('Ditolak oleh: MANAGER (Manager Umum)', $sentData['text']);
+        $this->assertStringContainsString('Kuota cuti tim penuh', $sentData['text']);
+        $this->assertStringContainsString('Kirim ke WhatsApp Karyawan', $sentData['reply_markup']);
     }
 }
