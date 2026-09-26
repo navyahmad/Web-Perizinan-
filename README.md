@@ -39,7 +39,7 @@ Sistem aplikasi web internal pengajuan dan persetujuan izin kantor untuk **Gener
 
 ### 1.2 Pemisahan Tanggal Pengajuan vs Tanggal Pelaksanaan Izin
 * `created_at` digunakan khusus sebagai catatan waktu pengiriman formulir (*timestamp submission*).
-* `leave_date` digunakan khusus sebagai tanggal pelaksanaan izin yang diajukan. Seluruh aturan bisnis masa tunggu (**H-1**, **H-7**, dan batas jam kerja) dihitung terhadap `leave_date` relatif terhadap tanggal pengiriman.
+* `leave_date` digunakan khusus sebagai tanggal pelaksanaan izin yang diajukan. Seluruh aturan bisnis masa tunggu (**H-7** dan batas jam kerja) dihitung terhadap `leave_date` relatif terhadap tanggal pengiriman.
 
 ### 1.3 Hak Akses 2-Role (Admin & HRD)
 * Hanya terdapat 2 role login internal:
@@ -56,7 +56,7 @@ Seluruh validasi waktu mengacu pada zona waktu resmi kantor: **WIB (`Asia/Jakart
 | Jenis Izin | Slug Internal | Syarat Tanggal (`leave_date`) | Batas Waktu Submit | Syarat Kondisi Darurat (*Emergency*) | Syarat Dokumen Pendukung |
 |---|---|---|---|---|---|
 | **Izin Terlambat** | `late` | Wajib Hari H (`today`) | Normal: &le; 07.00 WIB | Lewat 07.00 WIB: **Wajib Darurat** + Alasan Darurat | Opsional |
-| **Izin Setengah Hari** | `half_day` | Minimal **H-1** (mulai besok) | - | - | Opsional |
+| **Izin Setengah Hari** | `half_day` | Hari H atau tanggal mendatang | - | - | Opsional |
 | **Cuti** | `leave` | Minimal **H-7** | - | - | Opsional |
 | **Izin Darurat** | `emergency` | Wajib Hari H (`today`) | Maksimal **08.30.00 WIB** (lewat itu = Alpha) | Tipe izin inheren darurat (*Alasan wajib*) | Opsional |
 | **Izin Sakit** | `sick` | Hari H atau tanggal mendatang | Normal: < 08.30 WIB | Hari H &ge; 08.30 WIB: **Wajib Darurat** + Alasan Darurat | **Wajib** surat dokter jika > 1 hari |
@@ -68,8 +68,8 @@ Seluruh validasi waktu mengacu pada zona waktu resmi kantor: **WIB (`Asia/Jakart
    - Jika diajukan setelah pukul **07.00 WIB**, kolom `emergency` wajib dicentang dan `emergency_reason` wajib diisi.
    - Pernyataan persetujuan konsekuensi wajib disetujui.
 2. **Izin Setengah Hari (`half_day`)**:
-   - Wajib diajukan minimal H-1 sebelum tanggal izin.
-   - Durasi dihitung secara otomatis dari `start_time` dan `end_time`, maksimal **4 jam kerja**. Durasi kurang dari 4 jam tetap diperbolehkan; pengajuan ditolak validasi jika melebihi 4 jam.
+   - Dapat diajukan untuk hari ini atau tanggal mendatang (tidak boleh tanggal yang sudah lewat).
+   - Durasi dihitung secara otomatis dari `start_time` dan `end_time`, minimal **4 jam**. Durasi lebih dari 4 jam tetap diperbolehkan; pengajuan ditolak validasi jika kurang dari 4 jam.
 3. **Cuti (`leave`)**:
    - Wajib diajukan minimal H-7 dari tanggal pengajuan untuk keperluan koordinasi delegasi pekerjaan.
    - Durasi dihitung dalam satuan hari kalender.
@@ -414,7 +414,7 @@ Environment PHPUnit memakai kredensial Telegram dummy dan HTTP client yang di-*f
 
 ### Cakupan Pengujian (40 Tests / 153 Assertions):
 - **Otentikasi & Keamanan Akses**: Uji login admin/hrd, proteksi kredensial tidak valid, pembatasan middleware role antar dashboard, proteksi logout, dan rute tamu.
-- **Validasi 5 Jenis Izin**: Uji alur pengajuan lengkap untuk izin terlambat (aturan 07.00 WIB & emergency), izin setengah hari (durasi jam & minimal H-1), cuti (minimal H-7), **izin darurat** (aturan batas 08.00 WIB hari H & penolakan tipe lama `personal`), dan izin sakit (aturan jam 08.30 WIB & kewajiban surat dokter > 1 hari).
+- **Validasi 5 Jenis Izin**: Uji alur pengajuan lengkap untuk izin terlambat (aturan 07.00 WIB & emergency), izin setengah hari (durasi minimal 4 jam, bisa hari ini), cuti (minimal H-7), **izin darurat** (aturan batas 08.00 WIB hari H & penolakan tipe lama `personal`), dan izin sakit (aturan jam 08.30 WIB & kewajiban surat dokter > 1 hari).
 - **Validasi Standarisasi Jabatan**: Uji penerimaan seluruh 12 opsi allow-list jabatan dan penolakan nilai input jabatan di luar daftar.
 - **Notifikasi Telegram**: Uji trigger pengiriman post-commit melalui HTTP fake, proteksi data jika pengiriman gagal (tanpa rollback DB), sanitasi karakter HTML/anti-leak, dan proteksi anti-duplikasi saat refresh halaman sukses.
 - **Alur Persetujuan & Konkurensi**: Uji aksi approval dengan catatan, penolakan dengan alasan wajib, row-level lock concurrency, dan pembentukan URL WhatsApp Click-to-Chat.
