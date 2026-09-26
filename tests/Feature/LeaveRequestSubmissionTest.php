@@ -167,8 +167,8 @@ class LeaveRequestSubmissionTest extends TestCase
             'position' => 'Marketing',
             'type' => 'half_day',
             'leave_date' => '2026-09-07',
-            'start_time' => '08:30',
-            'end_time' => '12:30',
+            'start_time' => '15:00',
+            'end_time' => '16:30',
             'reason' => 'Acara keluarga',
         ]);
 
@@ -183,22 +183,23 @@ class LeaveRequestSubmissionTest extends TestCase
             'position' => 'Marketing',
             'type' => 'half_day',
             'leave_date' => '2026-09-08',
-            'start_time' => '08:30',
-            'end_time' => '12:30',
+            'start_time' => '15:00',
+            'end_time' => '16:30',
             'reason' => 'Acara keluarga',
         ]);
 
         $responseValid->assertSessionHasNoErrors();
         $this->assertDatabaseHas('leave_requests', [
             'name' => 'Diana',
-            'duration' => 4.0,
+            'duration' => 1.5,
         ]);
     }
 
-    public function test_half_day_request_under_4_hours_fails(): void
+    public function test_half_day_request_starting_before_12_30_fails(): void
     {
         Carbon::setTestNow(Carbon::create(2026, 9, 8, 10, 0, 0, 'Asia/Jakarta'));
 
+        // Jam Mulai 09:00 berarti baru bekerja 0.5 jam sejak 08.30 -> gagal
         $response = $this->from('/ajukan-izin')->post('/ajukan-izin', [
             'name' => 'Diana',
             'email' => 'diana@example.com',
@@ -207,18 +208,19 @@ class LeaveRequestSubmissionTest extends TestCase
             'position' => 'Marketing',
             'type' => 'half_day',
             'leave_date' => '2026-09-09',
-            'start_time' => '15:00',
-            'end_time' => '17:00',
+            'start_time' => '09:00',
+            'end_time' => '16:30',
             'reason' => 'Acara keluarga',
         ]);
 
-        $response->assertSessionHasErrors('end_time');
+        $response->assertSessionHasErrors('start_time');
     }
 
-    public function test_half_day_request_over_4_hours_succeeds(): void
+    public function test_half_day_request_starting_at_or_after_12_30_succeeds(): void
     {
         Carbon::setTestNow(Carbon::create(2026, 9, 8, 10, 0, 0, 'Asia/Jakarta'));
 
+        // Jam Mulai tepat 12:30 berarti sudah bekerja tepat 4 jam sejak 08.30 -> berhasil
         $response = $this->post('/ajukan-izin', [
             'name' => 'Diana',
             'email' => 'diana@example.com',
@@ -227,15 +229,15 @@ class LeaveRequestSubmissionTest extends TestCase
             'position' => 'Marketing',
             'type' => 'half_day',
             'leave_date' => '2026-09-09',
-            'start_time' => '12:00',
-            'end_time' => '17:00',
+            'start_time' => '12:30',
+            'end_time' => '16:30',
             'reason' => 'Acara keluarga',
         ]);
 
         $response->assertSessionHasNoErrors();
         $this->assertDatabaseHas('leave_requests', [
             'name' => 'Diana',
-            'duration' => 5.0,
+            'duration' => 4.0,
         ]);
     }
 

@@ -6,22 +6,22 @@
         type: '{{ old('type', 'late') ?: 'late' }}',
         emergency: {{ old('emergency') ? 'true' : 'false' }},
         estimatedArrival: '{{ old('estimated_arrival', '08:45') ?: '08:45' }}',
-        startTime: '{{ old('start_time', '08:30') ?: '08:30' }}',
-        endTime: '{{ old('end_time', '12:30') ?: '12:30' }}',
+        startTime: '{{ old('start_time', '13:00') ?: '13:00' }}',
+        endTime: '{{ old('end_time', '16:30') ?: '16:30' }}',
         sickDuration: {{ is_numeric(old('duration')) ? (float) old('duration') : 1 }},
         todayDate: '{{ \Carbon\Carbon::now('Asia/Jakarta')->toDateString() }}',
         minLeaveDate: '{{ \Carbon\Carbon::now('Asia/Jakarta')->addDays(7)->toDateString() }}',
         currentTime: '{{ \Carbon\Carbon::now('Asia/Jakarta')->format('H:i') }}',
         selectedFiles: [],
         
-        get calculatedHalfDayHours() {
-            if (!this.startTime || !this.endTime) return 0;
+        get calculatedWorkedHours() {
+            // Jam kerja dari jam masuk kantor (08.30 WIB) sampai Jam Mulai (waktu mulai izin/pulang).
+            if (!this.startTime) return 0;
             const [sh, sm] = this.startTime.split(':').map(Number);
-            const [eh, em] = this.endTime.split(':').map(Number);
             const startMinutes = sh * 60 + sm;
-            const endMinutes = eh * 60 + em;
-            if (endMinutes <= startMinutes) return 0;
-            return ((endMinutes - startMinutes) / 60).toFixed(1);
+            const officeStartMinutes = 8 * 60 + 30;
+            if (startMinutes <= officeStartMinutes) return 0;
+            return ((startMinutes - officeStartMinutes) / 60).toFixed(1);
         },
 
         get isPast7Am() {
@@ -34,7 +34,7 @@
 
         get isSubmitBlocked() {
             if (this.type === 'late' && this.estimatedArrival > '09:30') return true;
-            if (this.type === 'half_day' && this.calculatedHalfDayHours > 0 && this.calculatedHalfDayHours < 4) return true;
+            if (this.type === 'half_day' && this.startTime && this.startTime < '12:30') return true;
             if (this.type === 'emergency' && this.isPast830Am) return true;
             return false;
         }
@@ -294,7 +294,7 @@
                         <strong>Ketentuan Izin Setengah Hari:</strong>
                         <ul class="list-disc list-inside mt-1 space-y-0.5">
                             <li>Dapat diajukan untuk <strong>hari ini</strong> atau tanggal mendatang.</li>
-                            <li>Durasi izin minimal <strong>4 jam</strong>.</li>
+                            <li>Jam kerja dimulai <strong>08.30 WIB</strong>. Jam Mulai izin minimal pukul <strong>12.30 WIB</strong> (wajib sudah bekerja minimal 4 jam).</li>
                         </ul>
                     </div>
 
@@ -314,9 +314,10 @@
                             <label class="block text-sm font-medium text-slate-700 mb-1">
                                 Jam Mulai <span class="text-rose-500">*</span>
                             </label>
-                            <input type="time" name="start_time" x-model="startTime"
+                            <input type="time" name="start_time" x-model="startTime" min="12:30"
                                 :disabled="type !== 'half_day'" {{ old('type', 'late') !== 'half_day' ? 'disabled' : '' }}
                                 class="w-full rounded-lg border border-slate-300 px-3.5 py-2 text-slate-900 focus:ring-2 focus:ring-indigo-600 text-sm">
+                            <p class="text-xs text-slate-700 mt-1">Minimal pukul 12.30 WIB.</p>
                             @error('start_time') <p class="text-xs text-rose-600 mt-1">{{ $message }}</p> @enderror
                         </div>
 
@@ -327,19 +328,20 @@
                             <input type="time" name="end_time" x-model="endTime"
                                 :disabled="type !== 'half_day'" {{ old('type', 'late') !== 'half_day' ? 'disabled' : '' }}
                                 class="w-full rounded-lg border border-slate-300 px-3.5 py-2 text-slate-900 focus:ring-2 focus:ring-indigo-600 text-sm">
+                            <p class="text-xs text-slate-700 mt-1">Biasanya diisi jam tutup kantor.</p>
                             @error('end_time') <p class="text-xs text-rose-600 mt-1">{{ $message }}</p> @enderror
                         </div>
                     </div>
 
-                    <!-- Automatic Duration & Warning Badge -->
+                    <!-- Automatic Worked-Hours & Warning Badge -->
                     <div class="p-3 bg-white rounded-lg border border-slate-200 flex items-center justify-between text-xs">
-                        <span class="text-slate-600">Durasi Terhitung Otomatis:</span>
-                        <span class="font-bold text-sm text-indigo-700" x-text="calculatedHalfDayHours + ' Jam'"></span>
+                        <span class="text-slate-600">Jam Kerja Sebelum Izin (dari 08.30 WIB):</span>
+                        <span class="font-bold text-sm text-indigo-700" x-text="calculatedWorkedHours + ' Jam'"></span>
                     </div>
 
-                    <div x-show="calculatedHalfDayHours > 0 && calculatedHalfDayHours < 4"
+                    <div x-show="startTime && startTime < '12:30'"
                          class="p-2.5 bg-rose-50 border border-rose-200 rounded-lg text-xs text-rose-800">
-                        ⚠️ <strong>Durasi Kurang dari Batas Minimal:</strong> Durasi (<span x-text="calculatedHalfDayHours"></span> jam) belum mencapai minimal izin setengah hari (4 jam). Silakan sesuaikan jam mulai/selesai.
+                        ⚠️ <strong>Belum Memenuhi Jam Kerja Minimal:</strong> Jam Mulai (<span x-text="startTime"></span>) berarti baru bekerja <span x-text="calculatedWorkedHours"></span> jam, belum mencapai minimal 4 jam. Jam Mulai minimal pukul 12.30 WIB.
                     </div>
 
                     <div>

@@ -114,13 +114,10 @@ class StoreLeaveRequest extends FormRequest
                 if ($startTime && $endTime && $isValidTime($startTime) && $isValidTime($endTime)) {
                     if ($endTime <= $startTime) {
                         $validator->errors()->add('end_time', 'Jam selesai izin harus lebih besar daripada jam mulai.');
-                    } else {
-                        $durationHours = abs(Carbon::createFromFormat('H:i', $endTime)
-                            ->diffInMinutes(Carbon::createFromFormat('H:i', $startTime))) / 60;
-
-                        if ($durationHours < 4) {
-                            $validator->errors()->add('end_time', 'Durasi izin setengah hari minimal 4 jam.');
-                        }
+                    } elseif ($startTime < '12:30') {
+                        // Jam kerja kantor dimulai pukul 08.30 WIB; Jam Mulai (waktu mulai
+                        // izin/pulang) baru sah jika karyawan sudah bekerja minimal 4 jam.
+                        $validator->errors()->add('start_time', 'Jam mulai izin setengah hari minimal pukul 12.30 WIB (sudah bekerja minimal 4 jam sejak jam masuk 08.30 WIB).');
                     }
                 }
 

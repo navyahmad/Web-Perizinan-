@@ -82,11 +82,11 @@ class PartialDayLeaveTest extends TestCase
     {
         $this->post(route('public.store'), $this->payload('half_day', [
             'leave_date' => today('Asia/Jakarta')->addDay()->toDateString(),
-            'start_time' => '08:30',
-            'end_time' => '12:30',
+            'start_time' => '13:00',
+            'end_time' => '16:30',
         ]))->assertSessionHasNoErrors()->assertRedirect();
         $this->assertNull(LeaveRequest::sole()->half_day_type);
-        $this->assertSame(4.0, LeaveRequest::sole()->duration);
+        $this->assertSame(3.5, LeaveRequest::sole()->duration);
         Http::assertSentCount(1);
     }
 

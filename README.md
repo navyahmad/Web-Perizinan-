@@ -69,7 +69,7 @@ Seluruh validasi waktu mengacu pada zona waktu resmi kantor: **WIB (`Asia/Jakart
    - Pernyataan persetujuan konsekuensi wajib disetujui.
 2. **Izin Setengah Hari (`half_day`)**:
    - Dapat diajukan untuk hari ini atau tanggal mendatang (tidak boleh tanggal yang sudah lewat).
-   - Durasi dihitung secara otomatis dari `start_time` dan `end_time`, minimal **4 jam**. Durasi lebih dari 4 jam tetap diperbolehkan; pengajuan ditolak validasi jika kurang dari 4 jam.
+   - Jam kerja kantor dimulai **08.30 WIB**. `start_time` (Jam Mulai izin/pulang) wajib minimal **12.30 WIB**, memastikan karyawan sudah bekerja minimal 4 jam sebelum izin dimulai. `end_time` harus lebih besar dari `start_time`.
 3. **Cuti (`leave`)**:
    - Wajib diajukan minimal H-7 dari tanggal pengajuan untuk keperluan koordinasi delegasi pekerjaan.
    - Durasi dihitung dalam satuan hari kalender.
