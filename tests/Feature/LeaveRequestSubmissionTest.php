@@ -154,11 +154,11 @@ class LeaveRequestSubmissionTest extends TestCase
         $response->assertSessionHasErrors('estimated_arrival');
     }
 
-    public function test_half_day_request_in_the_past_fails_but_today_succeeds(): void
+    public function test_half_day_request_less_than_h_minus_1_fails(): void
     {
         Carbon::setTestNow(Carbon::create(2026, 9, 8, 10, 0, 0, 'Asia/Jakarta'));
 
-        // Tanggal kemarin -> gagal
+        // Hari ini (bukan minimal H-1) -> gagal
         $response = $this->from('/ajukan-izin')->post('/ajukan-izin', [
             'name' => 'Diana',
             'email' => 'diana@example.com',
@@ -166,7 +166,7 @@ class LeaveRequestSubmissionTest extends TestCase
             'department' => 'General Solusindo',
             'position' => 'Marketing',
             'type' => 'half_day',
-            'leave_date' => '2026-09-07',
+            'leave_date' => '2026-09-08',
             'start_time' => '15:00',
             'end_time' => '16:30',
             'reason' => 'Acara keluarga',
@@ -174,7 +174,7 @@ class LeaveRequestSubmissionTest extends TestCase
 
         $response->assertSessionHasErrors('leave_date');
 
-        // Hari ini (urgent) -> berhasil
+        // Besok (H-1) -> berhasil
         $responseValid = $this->post('/ajukan-izin', [
             'name' => 'Diana',
             'email' => 'diana@example.com',
@@ -182,7 +182,7 @@ class LeaveRequestSubmissionTest extends TestCase
             'department' => 'General Solusindo',
             'position' => 'Marketing',
             'type' => 'half_day',
-            'leave_date' => '2026-09-08',
+            'leave_date' => '2026-09-09',
             'start_time' => '15:00',
             'end_time' => '16:30',
             'reason' => 'Acara keluarga',

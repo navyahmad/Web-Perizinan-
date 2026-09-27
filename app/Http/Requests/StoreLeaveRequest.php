@@ -48,6 +48,7 @@ class StoreLeaveRequest extends FormRequest
         $validator->after(function ($validator) {
             $now = Carbon::now('Asia/Jakarta');
             $today = $now->toDateString();
+            $tomorrow = Carbon::tomorrow('Asia/Jakarta')->toDateString();
             $minLeaveDate = $now->copy()->addDays(7)->toDateString();
 
             $type = $this->input('type');
@@ -97,8 +98,8 @@ class StoreLeaveRequest extends FormRequest
                 }
             } elseif ($type === 'half_day') {
                 // Izin Setengah Hari
-                if ($leaveDate < $today) {
-                    $validator->errors()->add('leave_date', 'Tanggal izin setengah hari tidak boleh sebelum hari ini.');
+                if ($leaveDate < $tomorrow) {
+                    $validator->errors()->add('leave_date', 'Pengajuan izin setengah hari minimal diajukan H-1.');
                 }
 
                 $startTime = $this->input('start_time');

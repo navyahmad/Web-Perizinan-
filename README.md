@@ -39,7 +39,7 @@ Sistem aplikasi web internal pengajuan dan persetujuan izin kantor untuk **Gener
 
 ### 1.2 Pemisahan Tanggal Pengajuan vs Tanggal Pelaksanaan Izin
 * `created_at` digunakan khusus sebagai catatan waktu pengiriman formulir (*timestamp submission*).
-* `leave_date` digunakan khusus sebagai tanggal pelaksanaan izin yang diajukan. Seluruh aturan bisnis masa tunggu (**H-7** dan batas jam kerja) dihitung terhadap `leave_date` relatif terhadap tanggal pengiriman.
+* `leave_date` digunakan khusus sebagai tanggal pelaksanaan izin yang diajukan. Seluruh aturan bisnis masa tunggu (**H-1**, **H-7**, dan batas jam kerja) dihitung terhadap `leave_date` relatif terhadap tanggal pengiriman.
 
 ### 1.3 Hak Akses 2-Role (Admin & HRD)
 * Hanya terdapat 2 role login internal:
@@ -56,7 +56,7 @@ Seluruh validasi waktu mengacu pada zona waktu resmi kantor: **WIB (`Asia/Jakart
 | Jenis Izin | Slug Internal | Syarat Tanggal (`leave_date`) | Batas Waktu Submit | Syarat Kondisi Darurat (*Emergency*) | Syarat Dokumen Pendukung |
 |---|---|---|---|---|---|
 | **Izin Terlambat** | `late` | Wajib Hari H (`today`) | Normal: &le; 07.00 WIB | Lewat 07.00 WIB: **Wajib Darurat** + Alasan Darurat | Opsional |
-| **Izin Setengah Hari** | `half_day` | Hari H atau tanggal mendatang | - | - | Opsional |
+| **Izin Setengah Hari** | `half_day` | Minimal **H-1** (mulai besok) | - | - | Opsional |
 | **Cuti** | `leave` | Minimal **H-7** | - | - | Opsional |
 | **Izin Darurat** | `emergency` | Wajib Hari H (`today`) | Maksimal **08.30.00 WIB** (lewat itu = Alpha) | Tipe izin inheren darurat (*Alasan wajib*) | Opsional |
 | **Izin Sakit** | `sick` | Hari H atau tanggal mendatang | Normal: < 08.30 WIB | Hari H &ge; 08.30 WIB: **Wajib Darurat** + Alasan Darurat | **Wajib** surat dokter jika > 1 hari |
@@ -68,7 +68,7 @@ Seluruh validasi waktu mengacu pada zona waktu resmi kantor: **WIB (`Asia/Jakart
    - Jika diajukan setelah pukul **07.00 WIB**, kolom `emergency` wajib dicentang dan `emergency_reason` wajib diisi.
    - Pernyataan persetujuan konsekuensi wajib disetujui.
 2. **Izin Setengah Hari (`half_day`)**:
-   - Dapat diajukan untuk hari ini atau tanggal mendatang (tidak boleh tanggal yang sudah lewat).
+   - Wajib diajukan minimal H-1 sebelum tanggal izin.
    - Jam kerja kantor dimulai **08.30 WIB**. `start_time` (Jam Mulai izin/pulang) wajib minimal **12.30 WIB**, memastikan karyawan sudah bekerja minimal 4 jam sebelum izin dimulai. `end_time` harus lebih besar dari `start_time`.
 3. **Cuti (`leave`)**:
    - Wajib diajukan minimal H-7 dari tanggal pengajuan untuk keperluan koordinasi delegasi pekerjaan.

@@ -10,6 +10,7 @@
         endTime: '{{ old('end_time', '16:30') ?: '16:30' }}',
         sickDuration: {{ is_numeric(old('duration')) ? (float) old('duration') : 1 }},
         todayDate: '{{ \Carbon\Carbon::now('Asia/Jakarta')->toDateString() }}',
+        tomorrowDate: '{{ \Carbon\Carbon::tomorrow('Asia/Jakarta')->toDateString() }}',
         minLeaveDate: '{{ \Carbon\Carbon::now('Asia/Jakarta')->addDays(7)->toDateString() }}',
         currentTime: '{{ \Carbon\Carbon::now('Asia/Jakarta')->format('H:i') }}',
         selectedFiles: [],
@@ -293,7 +294,7 @@
                     <div class="bg-blue-50 border-l-4 border-blue-500 p-3 text-xs text-blue-900 rounded-r">
                         <strong>Ketentuan Izin Setengah Hari:</strong>
                         <ul class="list-disc list-inside mt-1 space-y-0.5">
-                            <li>Dapat diajukan untuk <strong>hari ini</strong> atau tanggal mendatang.</li>
+                            <li>Pengajuan minimal <strong>H-1</strong> (tanggal izin mulai besok).</li>
                             <li>Jam kerja dimulai <strong>08.30 WIB</strong>. Jam Mulai izin minimal pukul <strong>12.30 WIB</strong> (wajib sudah bekerja minimal 4 jam).</li>
                         </ul>
                     </div>
@@ -303,10 +304,10 @@
                             <label class="block text-sm font-medium text-slate-700 mb-1">
                                 Tanggal Izin Setengah Hari <span class="text-rose-500">*</span>
                             </label>
-                            <input type="date" name="leave_date" :min="todayDate" value="{{ old('leave_date', now('Asia/Jakarta')->toDateString()) }}"
+                            <input type="date" name="leave_date" :min="tomorrowDate" value="{{ old('leave_date') }}"
                                 :disabled="type !== 'half_day'" {{ old('type', 'late') !== 'half_day' ? 'disabled' : '' }}
                                 class="w-full rounded-lg border border-slate-300 px-3.5 py-2 text-slate-900 focus:ring-2 focus:ring-indigo-600 text-sm">
-                            <p class="text-xs text-slate-700 mt-1">Bisa untuk hari ini atau tanggal mendatang.</p>
+                            <p class="text-xs text-slate-700 mt-1">Minimal tanggal besok (H-1).</p>
                             @error('leave_date') <p class="text-xs text-rose-600 mt-1">{{ $message }}</p> @enderror
                         </div>
 
