@@ -289,6 +289,7 @@ class LeaveRequestSubmissionTest extends TestCase
             'type' => 'emergency',
             'leave_date' => '2026-09-08',
             'reason' => 'Ada musibah keluarga mendadak pagi ini.',
+            'contactable' => '1',
         ]);
 
         $response->assertSessionHasNoErrors();
@@ -313,6 +314,7 @@ class LeaveRequestSubmissionTest extends TestCase
             'type' => 'emergency',
             'leave_date' => '2026-09-08',
             'reason' => 'Ada keperluan darurat.',
+            'contactable' => '1',
         ]);
 
         $response->assertSessionHasNoErrors();
@@ -388,6 +390,24 @@ class LeaveRequestSubmissionTest extends TestCase
         ]);
 
         $response->assertSessionHasErrors('reason');
+    }
+
+    public function test_emergency_leave_requires_contactable_choice(): void
+    {
+        Carbon::setTestNow(Carbon::create(2026, 9, 8, 7, 30, 0, 'Asia/Jakarta'));
+
+        $response = $this->from('/ajukan-izin')->post('/ajukan-izin', [
+            'name' => 'Fani',
+            'email' => 'fani@example.com',
+            'phone' => '081234567890',
+            'department' => 'Tabinaco',
+            'position' => 'Finance',
+            'type' => 'emergency',
+            'leave_date' => '2026-09-08',
+            'reason' => 'Ada keperluan darurat.',
+        ]);
+
+        $response->assertSessionHasErrors('contactable');
     }
 
     public function test_personal_type_is_no_longer_accepted(): void

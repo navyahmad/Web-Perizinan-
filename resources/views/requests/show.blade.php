@@ -210,7 +210,7 @@
                                 <span class="font-medium text-slate-900">{{ $leaveRequest->estimated_arrival }} WIB</span>
                             </div>
                         @endif
-                        @if($leaveRequest->type === 'sick' && $leaveRequest->contactable !== null)
+                        @if(in_array($leaveRequest->type, ['sick', 'emergency'], true) && $leaveRequest->contactable !== null)
                             <div>
                                 <span class="text-xs text-slate-700 block">Dapat Dihubungi</span>
                                 <span class="font-medium {{ $leaveRequest->contactable ? 'text-emerald-700' : 'text-slate-600' }}">

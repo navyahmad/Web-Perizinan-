@@ -156,6 +156,10 @@ class StoreLeaveRequest extends FormRequest
                 if (empty(trim((string) $this->input('reason')))) {
                     $validator->errors()->add('reason', 'Alasan izin darurat wajib diisi.');
                 }
+
+                if ($this->input('contactable') === null) {
+                    $validator->errors()->add('contactable', 'Pilihan apakah dapat dihubungi untuk koordinasi mendesak wajib dipilih.');
+                }
             } elseif ($type === 'sick') {
                 // Izin Sakit
                 if ($leaveDate < $today) {
