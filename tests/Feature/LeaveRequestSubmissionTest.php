@@ -195,11 +195,11 @@ class LeaveRequestSubmissionTest extends TestCase
         ]);
     }
 
-    public function test_half_day_request_starting_before_12_30_fails(): void
+    public function test_half_day_request_over_4_hours_fails(): void
     {
         Carbon::setTestNow(Carbon::create(2026, 9, 8, 10, 0, 0, 'Asia/Jakarta'));
 
-        // Jam Mulai 09:00 berarti baru bekerja 0.5 jam sejak 08.30 -> gagal
+        // 09:00-16:30 = 7.5 jam, melebihi batas 4 jam -> gagal
         $response = $this->from('/ajukan-izin')->post('/ajukan-izin', [
             'name' => 'Diana',
             'email' => 'diana@example.com',
@@ -213,14 +213,14 @@ class LeaveRequestSubmissionTest extends TestCase
             'reason' => 'Acara keluarga',
         ]);
 
-        $response->assertSessionHasErrors('start_time');
+        $response->assertSessionHasErrors('end_time');
     }
 
-    public function test_half_day_request_starting_at_or_after_12_30_succeeds(): void
+    public function test_half_day_request_exactly_4_hours_in_the_afternoon_succeeds(): void
     {
         Carbon::setTestNow(Carbon::create(2026, 9, 8, 10, 0, 0, 'Asia/Jakarta'));
 
-        // Jam Mulai tepat 12:30 berarti sudah bekerja tepat 4 jam sejak 08.30 -> berhasil
+        // 12:30-16:30 = tepat 4 jam -> berhasil
         $response = $this->post('/ajukan-izin', [
             'name' => 'Diana',
             'email' => 'diana@example.com',
@@ -231,6 +231,31 @@ class LeaveRequestSubmissionTest extends TestCase
             'leave_date' => '2026-09-09',
             'start_time' => '12:30',
             'end_time' => '16:30',
+            'reason' => 'Acara keluarga',
+        ]);
+
+        $response->assertSessionHasNoErrors();
+        $this->assertDatabaseHas('leave_requests', [
+            'name' => 'Diana',
+            'duration' => 4.0,
+        ]);
+    }
+
+    public function test_half_day_request_exactly_4_hours_in_the_morning_succeeds(): void
+    {
+        Carbon::setTestNow(Carbon::create(2026, 9, 8, 10, 0, 0, 'Asia/Jakarta'));
+
+        // 08:30-12:30 = tepat 4 jam, mulai dari pagi -> berhasil (Jam Mulai tidak dibatasi posisi)
+        $response = $this->post('/ajukan-izin', [
+            'name' => 'Diana',
+            'email' => 'diana@example.com',
+            'phone' => '081234567890',
+            'department' => 'General Solusindo',
+            'position' => 'Marketing',
+            'type' => 'half_day',
+            'leave_date' => '2026-09-09',
+            'start_time' => '08:30',
+            'end_time' => '12:30',
             'reason' => 'Acara keluarga',
         ]);
 
