@@ -59,6 +59,7 @@ class StatusController extends Controller
             'created_at' => $leaveRequest->created_at,
             'processed_at' => $leaveRequest->processed_at,
             'processor_role' => $leaveRequest->processor ? ($leaveRequest->processor->isAdmin() ? 'MANAGER' : 'HRD') : null,
+            'reason' => $leaveRequest->reason,
             'rejection_reason' => $leaveRequest->status === 'rejected' ? $leaveRequest->rejection_reason : null,
             'duration' => $leaveRequest->duration,
             'start_time' => $leaveRequest->start_time,

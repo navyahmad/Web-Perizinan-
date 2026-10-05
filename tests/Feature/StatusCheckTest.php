@@ -44,6 +44,32 @@ class StatusCheckTest extends TestCase
         $response->assertDontSee('6281234567890');
     }
 
+    public function test_status_check_shows_the_submitted_reason(): void
+    {
+        LeaveRequest::create([
+            'request_number' => 'IZN-2026-000012',
+            'name' => 'Hendro',
+            'email' => 'hendro@example.com',
+            'phone' => '6281234567890',
+            'department' => 'General Solusindo',
+            'position' => 'Marketing',
+            'type' => 'leave',
+            'leave_date' => '2026-09-25',
+            'duration' => 2,
+            'reason' => 'Menghadiri acara pernikahan saudara',
+            'status' => 'pending',
+        ]);
+
+        $response = $this->post('/cek-status', [
+            'request_number' => 'IZN-2026-000012',
+            'email' => 'hendro@example.com',
+        ]);
+
+        $response->assertStatus(200);
+        $response->assertSee('Alasan Izin');
+        $response->assertSee('Menghadiri acara pernikahan saudara');
+    }
+
     public function test_status_check_with_wrong_email_fails(): void
     {
         LeaveRequest::create([

@@ -59,6 +59,7 @@ class TelegramNotificationTest extends TestCase
         $this->assertStringContainsString('Budi Santoso', $sentData['text']);
         $this->assertStringContainsString('Teknisi', $sentData['text']);
         $this->assertStringContainsString('Izin Terlambat', $sentData['text']);
+        $this->assertStringContainsString('Alasan: Macet', $sentData['text']);
         $this->assertStringContainsString('https://izin.delogic.net/login', $sentData['text']);
         $this->assertStringContainsString('https://izin.delogic.net/login', $sentData['reply_markup']);
     }

@@ -167,6 +167,17 @@
                         @endif
                     </dl>
 
+                    @if($statusData['reason'])
+                        <div class="mt-6 p-4 bg-slate-50 border border-slate-200 rounded-lg">
+                            <span class="text-xs font-bold text-slate-700 uppercase tracking-wider block mb-1">
+                                Alasan Izin:
+                            </span>
+                            <p class="text-sm text-slate-900 font-medium whitespace-pre-line">
+                                {{ $statusData['reason'] }}
+                            </p>
+                        </div>
+                    @endif
+
                     @if($statusData['status'] === 'rejected' && $statusData['rejection_reason'])
                         <div class="mt-6 p-4 bg-rose-50 border border-rose-200 rounded-lg">
                             <span class="text-xs font-bold text-rose-800 uppercase tracking-wider block mb-1">

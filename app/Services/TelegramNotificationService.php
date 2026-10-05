@@ -122,12 +122,15 @@ class TelegramNotificationService
     {
         $leaveDateFormatted = Carbon::parse($request->leave_date)->format('d/m/Y');
 
+        $reason = trim((string) $request->reason) !== '' ? $request->reason : '-';
+
         return 'No. Pengajuan: <b>'.htmlspecialchars($request->request_number, ENT_QUOTES, 'UTF-8')."</b>\n"
             .'Nama: '.htmlspecialchars($request->name, ENT_QUOTES, 'UTF-8')."\n"
             .'Departemen: '.htmlspecialchars($request->department, ENT_QUOTES, 'UTF-8')."\n"
             .'Jabatan: '.htmlspecialchars($request->position, ENT_QUOTES, 'UTF-8')."\n"
             .'Jenis Izin: '.htmlspecialchars($request->type_label, ENT_QUOTES, 'UTF-8')."\n"
-            ."Tanggal Izin: {$leaveDateFormatted}\n";
+            ."Tanggal Izin: {$leaveDateFormatted}\n"
+            .'Alasan: '.htmlspecialchars($reason, ENT_QUOTES, 'UTF-8')."\n";
     }
 
     /**
